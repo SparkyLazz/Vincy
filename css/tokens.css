@@ -1,0 +1,83 @@
+/* Console — tokens.css
+   Design tokens: color, type. Extracted verbatim from console_design_library_final.html (lines 11-89).
+   Source values verified byte-identical (modulo whitespace) across design library + all 5 prototypes. */
+
+  :root {
+    --paper: #FAF9F5;
+    --paper-2: #F4F2EB;
+    --card: #FFFFFF;
+    --ink-1: #1F1E1B;
+    --ink-2: #57544D;
+    --ink-3: #8B877E;
+    --ink-4: #BAB6AC;
+    --line-1: rgba(31,30,27,0.07);
+    --line-2: rgba(31,30,27,0.14);
+
+    --accent: #C96442;
+    --accent-dk: #A04E32;
+    --accent-lt: #E5947A;
+    --accent-soft: #F6E5DD;
+    --accent-line: rgba(201,100,66,0.30);
+
+    --accent-l1: rgba(201,100,66,0.20);
+    --accent-l2: rgba(201,100,66,0.42);
+    --accent-l3: rgba(201,100,66,0.68);
+    --accent-l4: rgba(201,100,66,0.95);
+
+    --teal: #4A7C5C;
+    --teal-soft: #E1ECE3;
+    --blue: #4A6FA5;
+    --blue-soft: #DEE7F4;
+    --amber: #B5740A;
+    --amber-soft: #F8EBCC;
+    --plum: #7A5C8C;
+    --plum-soft: #EBE0F1;
+    --rose: #B14D6B;
+    --rose-soft: #F4DDE3;
+
+    --success: #4A7C5C;
+    --warning: #B5740A;
+    --danger: #B14D3F;
+
+    --display: 'Source Serif 4', Georgia, serif;
+    --body: 'Inter', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  [data-theme="dark"] {
+    --paper: #1A1714;
+    --paper-2: #221E1A;
+    --card: #25201C;
+    --ink-1: #F2EDE3;
+    --ink-2: #B3AC9F;
+    --ink-3: #807A6F;
+    --ink-4: #524C44;
+    --line-1: rgba(242,237,227,0.06);
+    --line-2: rgba(242,237,227,0.14);
+
+    --accent: #E8825E;
+    --accent-dk: #C96442;
+    --accent-lt: #F4A98F;
+    --accent-soft: rgba(232,130,94,0.14);
+    --accent-line: rgba(232,130,94,0.32);
+
+    --accent-l1: rgba(232,130,94,0.18);
+    --accent-l2: rgba(232,130,94,0.38);
+    --accent-l3: rgba(232,130,94,0.62);
+    --accent-l4: rgba(232,130,94,0.92);
+
+    --teal: #6FAE85;
+    --teal-soft: rgba(111,174,133,0.14);
+    --blue: #7A99CD;
+    --blue-soft: rgba(122,153,205,0.14);
+    --amber: #DC9430;
+    --amber-soft: rgba(220,148,48,0.14);
+    --plum: #A488B5;
+    --plum-soft: rgba(164,136,181,0.14);
+    --rose: #D17D95;
+    --rose-soft: rgba(209,125,149,0.14);
+
+    --success: #6FAE85;
+    --warning: #DC9430;
+    --danger: #D17D70;
+  }

@@ -1,0 +1,189 @@
+/* Console — base.css
+   App shell chrome: reset, sidebar, topbar, content scroll region, floating timer, scrollbar.
+   Extracted verbatim from console_today_prototype.html (Phase 1 / Foundation + Today dashboard prototype).
+   Phase 2 (Tasks) checked whether the "page-head-row + view-tabs-row + metrics-row" header pattern
+   flagged as unextracted after Phase 1 is actually shared, rather than assuming (the exact mistake
+   this file's own history warns against — see Console_Workflow.md). Grepped all four prototypes
+   that use it (Tasks/Schedule/Habits/Finance):
+     - .page-head-row / .view-tabs-row / .metrics-row: present and equivalent in Tasks/Schedule/
+       Habits (Tasks has one harmless extra `max-width: 100%` — a no-op, dropped here). Finance's
+       prototype doesn't use this header pattern at all (different page-head treatment) — not
+       extracted from it.
+     - .kbd-hints: byte-identical across all FOUR (Tasks/Schedule/Habits/Finance). Genuinely shared.
+     - .twopane-row: only in Tasks and Habits, NOT in Schedule or Finance — those two modules use a
+       different content layout (calendar grid / panel layout, presumably). Extracted here anyway
+       since it's still shared by 2 of 4 and is a generic layout primitive, not module-specific
+       content — but don't assume Schedule/Finance will use it without checking their prototypes
+       when their phases start. */
+
+  /* RESET */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; overflow: clip; scrollbar-width: none; }
+  /* Belt-and-suspenders for the line above: every scrollable region in the app (`.content`,
+     `.pane-body`, `.view-tabs-inner`) owns its own scroll, so the document itself should never
+     scroll. `overflow: hidden` on body alone relies on the browser propagating it to the viewport,
+     which isn't reliable across all Chromium builds/zoom levels — seen as a stray native scrollbar
+     (just its up/down arrow buttons, no visible track) pinned to the top-right of the window.
+     Fix has 3 layers now (first pass only had #2, and only on `html` — still leaked in Phase 2
+     browser verification): 1) `overflow: clip` on html/body — unlike `hidden`, `clip` never
+     establishes a scroll container in the first place, so there's nothing for the browser to draw
+     a scrollbar for, even as a quirk. 2) `::-webkit-scrollbar { display: none }` on BOTH html and
+     body (Chromium/WebKit belt-and-suspenders). 3) `scrollbar-width: none` on both (Firefox has no
+     webkit pseudo-element, needs its own property or this leak reappears there). */
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+  body {
+    background: var(--paper);
+    color: var(--ink-1);
+    font-family: var(--body);
+    font-size: 14.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.2s, color 0.2s;
+    overflow: hidden;
+    overflow: clip;
+    scrollbar-width: none;
+  }
+
+  /* APP GRID */
+  .app { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+
+  /* ============ SIDEBAR ============ */
+  .sidebar { background: var(--paper-2); border-right: 1px solid var(--line-1); display: flex; flex-direction: column; padding: 18px 0; }
+  .brand { padding: 4px 18px 22px; display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; color: white; font-family: var(--display); font-style: italic; font-weight: 700; font-size: 15px; }
+  .brand-name { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-meta { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-top: -2px; }
+
+  .nav-group-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; padding: 12px 18px 4px; }
+  .nav-item { display: flex; align-items: center; gap: 11px; padding: 7px 18px; cursor: pointer; color: var(--ink-2); font-size: 13.5px; font-weight: 500; position: relative; }
+  .nav-item:hover { color: var(--ink-1); background: var(--line-1); }
+  .nav-item.active { color: var(--accent); background: var(--accent-soft); }
+  .nav-item.active::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; }
+  .nav-item svg { width: 15px; height: 15px; stroke-width: 1.7; flex-shrink: 0; }
+  .nav-item .nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700; }
+  .nav-item.active .nav-count { color: var(--accent); }
+
+  .sidebar-footer { margin-top: auto; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); border-top: 1px solid var(--line-1); }
+  .sidebar-footer .ondisk { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px rgba(74,124,92,0.18); }
+
+  /* ============ TOPBAR + MAIN ============ */
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 56px; border-bottom: 1px solid var(--line-1); display: flex; align-items: center; padding: 0 26px; gap: 16px; flex-shrink: 0; }
+  .breadcrumb { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); letter-spacing: 0.04em; }
+  .breadcrumb .sep { color: var(--ink-4); margin: 0 7px; }
+  .breadcrumb .here { color: var(--ink-1); font-weight: 700; }
+  .topbar-spacer { flex: 1; }
+
+  .segmented { display: inline-flex; background: var(--paper-2); border-radius: 8px; padding: 3px; }
+  .segmented button { background: transparent; border: none; padding: 4px 11px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); cursor: pointer; border-radius: 5px; font-weight: 600; }
+  .segmented button.active { background: var(--card); color: var(--ink-1); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+  .cmd-trigger { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 12px; border: 1px solid var(--line-2); border-radius: 7px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; background: var(--card); min-width: 230px; }
+  .cmd-trigger:hover { border-color: var(--ink-3); }
+  .cmd-trigger .kbd { background: var(--paper-2); padding: 1px 5px; border-radius: 4px; font-size: 10px; color: var(--ink-2); font-weight: 700; margin-left: auto; }
+  .cmd-trigger svg { width: 13px; height: 13px; stroke-width: 1.7; color: var(--ink-3); }
+
+  .theme-toggle { display: inline-flex; gap: 1px; background: var(--paper-2); padding: 3px; border-radius: 999px; }
+  .theme-toggle button { background: transparent; border: none; padding: 5px 11px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); cursor: pointer; border-radius: 999px; font-weight: 700; text-transform: lowercase; letter-spacing: 0.04em; }
+  .theme-toggle button.active { background: var(--card); color: var(--ink-1); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+  /* ============ CONTENT SCROLL ============ */
+  .content { flex: 1; overflow-y: auto; padding: 26px 36px 100px; }
+  .content-inner { max-width: 1180px; margin: 0 auto; }
+
+  /* ============ FLOATING TIMER ============ */
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .floating-timer { position: fixed; bottom: 22px; right: 22px; background: var(--ink-1); color: var(--paper); border-radius: 14px; padding: 14px 18px; box-shadow: 0 12px 32px rgba(31,30,27,0.16); display: flex; align-items: center; gap: 16px; z-index: 100; }
+  [data-theme="dark"] .floating-timer { background: var(--card); border: 1px solid var(--line-2); box-shadow: 0 12px 32px rgba(0,0,0,0.4); color: var(--ink-1); }
+  .floating-timer .ftindicator { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px rgba(232,130,94,0.25); animation: pulse 1.8s infinite; }
+  .floating-timer .ftcontent .ftmode { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; font-weight: 700; }
+  .floating-timer .ftcontent .fttitle { font-family: var(--display); font-weight: 700; font-size: 14px; margin-top: 2px; }
+  .floating-timer .fttime { font-family: var(--display); font-weight: 700; font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
+  .floating-timer .ftctrls { display: flex; gap: 6px; }
+  .floating-timer .ftctrls button { background: rgba(244,242,235,0.10); border: 1px solid rgba(244,242,235,0.18); color: inherit; padding: 5px 9px; border-radius: 6px; cursor: pointer; font-family: var(--mono); font-size: 10px; font-weight: 700; }
+  [data-theme="dark"] .floating-timer .ftctrls button { background: var(--paper-2); border-color: var(--line-2); }
+  .floating-timer .ftctrls button:hover { background: rgba(244,242,235,0.18); }
+
+  /* ============ SCROLLBAR ============ */
+  .content::-webkit-scrollbar { width: 10px; }
+  .content::-webkit-scrollbar-track { background: transparent; }
+  .content::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 5px; border: 2px solid var(--paper); }
+  .content::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+  /* RESPONSIVE SHELL */
+  @media (max-width: 720px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+
+  /* ============ TABBED MODULE LAYOUT (Phase 2) ============
+     Today's dashboard renders inside .content/.content-inner (padding + max-width centering owned
+     by the shell) and the whole region scrolls as one tall page. Tasks/Schedule/Habits/Finance
+     instead bring their own full-bleed row structure — each of page-head-row/view-tabs-row/
+     metrics-row/twopane-row centers itself to 1180px and owns its own horizontal padding, and only
+     .twopane-row's inner .pane-body scrolls (everything else — tabs, metrics, capture bar — stays
+     fixed while the list/detail pane scrolls internally). Nesting that inside the already-padded,
+     already-scrolling .content/.content-inner would double the padding/max-width and produce two
+     nested scrollbars. Rather than restructure index.html per module, router.js toggles a `.flush`
+     class on both elements when the active module declares `layout: 'flush'` (see router.js and
+     js/modules/tasks/index.js). Today and every stub module leave `layout` unset, so this never
+     applies to them — zero risk to the already-verified Phase 1 rendering path. */
+  .content.flush { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .content.flush .content-inner { max-width: none; margin: 0; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+  /* ============ PAGE HEAD ROW (Tasks/Schedule/Habits) ============ */
+  .page-head-row { padding: 22px 36px 0; }
+  .page-head-row .inner { max-width: 1180px; margin: 0 auto; display: flex; align-items: baseline; gap: 16px; }
+  .page-sub { font-family: var(--display); font-style: italic; font-size: 14px; color: var(--ink-2); }
+  .page-actions { margin-left: auto; display: flex; gap: 8px; }
+  .btn-mini { background: var(--card); border: 1px solid var(--line-2); padding: 6px 12px; border-radius: 7px; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-mini:hover { background: var(--paper-2); color: var(--ink-1); }
+  .btn-mini.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn-mini.primary:hover { background: var(--accent-dk); }
+  .btn-mini svg { width: 12px; height: 12px; stroke-width: 2; }
+
+  /* ============ VIEW TABS ROW (Tasks/Schedule/Habits) ============ */
+  .view-tabs-row { padding: 18px 36px 0; }
+  .view-tabs-inner { max-width: 1180px; margin: 0 auto; border-bottom: 1px solid var(--line-1); display: flex; gap: 0; overflow-x: auto; }
+  .vtab { padding: 10px 14px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 700; letter-spacing: 0.04em; text-transform: lowercase; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+  .vtab:hover { color: var(--ink-2); }
+  .vtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .vtab .vcount { font-size: 10px; color: var(--ink-3); background: var(--paper-2); padding: 1px 6px; border-radius: 999px; font-weight: 700; }
+  .vtab.active .vcount { color: var(--accent); background: var(--accent-soft); }
+  .vtab-spacer { flex: 1; }
+  .vtab-extra { display: inline-flex; align-items: center; gap: 8px; padding: 8px 0; }
+
+  /* ============ METRICS ROW (Tasks/Schedule/Habits) ============ */
+  .metrics-row { padding: 18px 36px 0; }
+  .metrics-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .metric { background: var(--card); border: 1px solid var(--line-1); border-radius: 11px; padding: 12px 16px; }
+  .metric .mnum { font-family: var(--body); font-weight: 800; font-size: 24px; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .metric .mnum .munit { font-size: 13px; color: var(--ink-2); font-weight: 500; margin-left: 2px; }
+  .metric .mlbl { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; }
+  .metric .mtrend { font-size: 9.5px; color: var(--success); font-weight: 700; }
+  .metric .mtrend.warn { color: var(--amber); }
+  .metric .mtrend.down { color: var(--ink-3); }
+
+  /* ============ TWO-PANE ROW (Tasks/Habits — not Schedule/Finance, checked, see note above) ============ */
+  .twopane-row { padding: 18px 36px 70px; flex: 1; overflow: hidden; min-height: 0; }
+  .twopane-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; height: 100%; }
+  .pane { background: var(--card); border: 1px solid var(--line-1); border-radius: 13px; overflow: hidden; display: flex; flex-direction: column; }
+  .pane-head { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line-1); flex-shrink: 0; }
+  .pane-title { font-family: var(--display); font-weight: 700; font-size: 14px; }
+  .pane-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-left: auto; }
+  .pane-body { flex: 1; overflow-y: auto; }
+  .pane-body::-webkit-scrollbar { width: 9px; height: 9px; }
+  .pane-body::-webkit-scrollbar-track { background: transparent; }
+  .pane-body::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 5px; }
+  .pane-body::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+  /* ============ KEYBOARD HINTS BAR (Tasks/Schedule/Habits/Finance — byte-identical in all 4) ============ */
+  .kbd-hints { position: fixed; bottom: 0; left: 220px; right: 0; height: 32px; background: var(--paper-2); border-top: 1px solid var(--line-1); display: flex; align-items: center; padding: 0 24px; gap: 18px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); z-index: 50; }
+  .kbd-hints .khint { display: inline-flex; align-items: center; gap: 5px; }
+  .kbd-hints .khint .kbd { background: var(--card); border: 1px solid var(--line-2); padding: 1px 6px; border-radius: 4px; font-size: 10px; color: var(--ink-2); font-weight: 700; }
+  .kbd-hints .khint .klbl { color: var(--ink-2); }
+
+  @media (max-width: 1024px) {
+    .metrics-inner { grid-template-columns: repeat(2, 1fr); }
+    .twopane-inner { grid-template-columns: 1fr; }
+  }
