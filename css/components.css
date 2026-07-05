@@ -208,6 +208,7 @@
   .list-row.event { grid-template-columns: 64px 1fr auto auto; }
   .list-row.txn { grid-template-columns: 1fr 110px 110px auto; }
   .list-row.habit { grid-template-columns: 1fr 120px auto auto; }
+  .list-row.report { grid-template-columns: 90px 1fr 1fr 1fr 1fr; }
   .list-row:hover { background: var(--paper); }
   .list-row .ti { font-weight: 500; }
   .list-row .ti.done { color: var(--ink-3); text-decoration: line-through; }
@@ -516,7 +517,8 @@
      module's own quick-add bar likely differs, check when those phases start instead of assuming). */
   .capture-row { padding: 18px 36px 0; }
   .capture-inner { max-width: 1180px; margin: 0 auto; }
-  .capture-card { background: var(--card); border: 1px solid var(--line-1); border-radius: 12px; padding: 14px 18px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+  .capture-card { background: var(--card); border: 1px solid var(--line-1); border-radius: 12px; padding: 14px 18px; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; transition: border-color 0.15s, box-shadow 0.15s; }
+  .capture-card:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .capture-card .cap-left { display: flex; align-items: center; gap: 12px; }
   .capture-card .cap-glyph { width: 28px; height: 28px; background: var(--accent-soft); color: var(--accent); border-radius: 7px; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 18px; line-height: 1; }
   .capture-card .cap-input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--body); font-size: 14.5px; color: var(--ink-1); padding: 6px 0; }
@@ -860,15 +862,27 @@
   .modal-overlay[hidden] { display: none; }
   .modal { width: 100%; max-width: 460px; max-height: 86vh; overflow-y: auto; background: var(--card); border: 1px solid var(--line-2); border-radius: 13px; box-shadow: 0 16px 44px rgba(31,30,27,0.14); }
   [data-theme="dark"] .modal { box-shadow: 0 16px 44px rgba(0,0,0,0.5); }
+  /* REAL BUG, found + fixed in Phase 5 browser verification — `.modal-row3` (2 rows of 3 fields,
+     the transaction modal's Date/Amount/Envelope + Currency/FX rate/Original amount) crammed into
+     the shared 460px `.modal` width: at (460 − 40px body padding − 20px gaps) / 3 ≈ 133px per
+     column, the Envelope select's category names truncated and the Amount field's longer label
+     wrapped to 2 lines, throwing off vertical alignment against its 1-line siblings. Schedule/
+     Habits' own `.modal-row3` usage never hits this (shorter field sets, no long select labels),
+     so rather than widening every modal that reuses the shared shell — risking regressions on
+     already-verified Phase 3/4 screens — added a `.wide` modifier scoped to Finance's transaction
+     modal only. */
+  .modal.wide { max-width: 640px; }
   .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line-1); }
   .modal-title { font-family: var(--display); font-weight: 700; font-size: 16px; }
   .modal-close { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; cursor: pointer; color: var(--ink-3); background: transparent; border: none; }
   .modal-close:hover { background: var(--paper-2); color: var(--ink-1); }
   .modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .modal-field { display: flex; flex-direction: column; }
   .modal-field label { display: block; font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 6px; }
   .modal-field select.input { appearance: none; cursor: pointer; }
-  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .modal-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .modal-field .input { margin-top: auto; }
+  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+  .modal-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: end; }
   .modal-dow-picker { display: flex; gap: 5px; flex-wrap: wrap; }
   .modal-dow-picker button { width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink-2); font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase; cursor: pointer; }
   .modal-dow-picker button.active { background: var(--accent); border-color: var(--accent); color: white; }
@@ -882,4 +896,416 @@
      own visual_contract check confirmed only Tasks/Habits share the real two-pane layout; see
      base.css's header note). Reuses the same padding/scroll/border chrome instead of a new wrapper. */
   .twopane-inner.single { grid-template-columns: 1fr; }
+
+  /* ============================================================================================
+     HABITS (Phase 4) — extracted from console_habits_prototype.html.
+     Reused verbatim, no changes: .page-head-row/.view-tabs-row/.metrics-row/.kbd-hints (shell,
+     confirmed byte-identical during the Phase 2 checksum pass), .twopane-row/.pane/.pane-head/
+     .pane-body (Tasks' two-pane shell — .pane-body has no padding by default, so the prototype's
+     own inline `style="padding:0"` on the detail pane's .pane-body was simply redundant with the
+     canonical default, not a real override — dropped rather than reproduced, since it's a
+     non-dynamic value the visual_contract disallows inline regardless), .detail-head/.detail-
+     section/.detail-actions (Tasks' detail-pane shell — reused for structure; Habits' own eyebrow/
+     title/identity/stats sub-parts are new, see below), .list-row.habit (already defined with the
+     right 4-column template, had no real consumer before this phase — same "unused template, first
+     real user" precedent as Phase 3's .list-row.event), .modal-overlay/.modal/.modal-field/.input/
+     .notes-area (Schedule's modal system, reused for the New/Edit habit form and the L log form —
+     see phase_4_habits.md item 1/2), .pill.teal/.blue/.amber/.plum/.danger (canonical design-
+     library rule; the prototype's own `.pill.rose` is the exact `.card`/`.pill`/`.priority`-style
+     duplicate the Phase 2 note already flagged for `.pill.danger` — not reproduced, see below).
+
+     CONFLICT, resolved — .pill.rose: the prototype defines `.pill.rose { background: var(--rose-
+     soft); color: var(--danger); }` for the "avoid · sleep" category. This is byte-identical to
+     the already-canonical `.pill.danger`. Per the Phase 2 precedent (a duplicate under a new name
+     is not a new value), Habits markup uses `.pill.danger`, no `.pill.rose` was added.
+
+     CONFLICT, resolved — .detail-head padding: the prototype's own `.detail-head` uses
+     `padding: 20px 22px 16px` vs the canonical (Tasks-extracted) `padding: 18px 22px 14px` — a
+     2px drift, checked rather than assumed identical (the exact lesson Console_Workflow.md logs
+     from the Phase 1 bundle extraction). Treated as the same class of unpatched legacy drift as
+     Phase 1's 11px-vs-12px priority bars: canonical (already-shipped) value kept, prototype's
+     value not reproduced. .dh-title's 26px is a genuinely different component from Tasks' own
+     20px .detail-title (a habit's name-as-identity headline vs. a task title) — both kept as
+     separate sub-classes rather than forcing one to match the other. */
+
+  .habits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+  .habit-card { background: var(--paper); border: 1px solid var(--line-1); border-radius: 11px; padding: 14px 16px; cursor: pointer; transition: border-color 0.15s; position: relative; }
+  .habit-card:hover { border-color: var(--line-2); }
+  .habit-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .habit-card.selected::before { content: ""; position: absolute; left: -1px; top: 8px; bottom: 8px; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; }
+  .hc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .hc-name { font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; line-height: 1.2; flex: 1; }
+  .hc-pct { font-family: var(--body); font-weight: 800; font-size: 22px; letter-spacing: -0.025em; color: var(--teal); line-height: 1; font-variant-numeric: tabular-nums; }
+  .hc-pct.warn { color: var(--amber); }
+  .hc-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .hc-target { font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 600; }
+  .hc-chain { display: grid; grid-template-columns: repeat(14, 1fr); gap: 2px; margin-bottom: 11px; }
+  .hc-chain .day { aspect-ratio: 1 / 1; background: var(--paper-2); border-radius: 2px; }
+  .hc-chain .day.done { background: var(--teal); }
+  .hc-chain .day.partial { background: var(--teal-soft); border: 1px solid var(--teal); }
+  .hc-chain .day.skip { background: var(--paper-2); position: relative; }
+  .hc-chain .day.skip::after { content: ""; position: absolute; inset: 40%; background: var(--ink-4); border-radius: 50%; }
+  .hc-chain .day.miss { background: var(--rose-soft); }
+  .hc-chain .day.today { outline: 1.5px solid var(--accent); outline-offset: 1px; }
+  .hc-today { display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line-1); }
+  .hc-today .today-lbl { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .hc-today .log-btns { display: flex; gap: 4px; margin-left: auto; }
+  .hc-today .today-val { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); font-weight: 700; }
+
+  .hlog { width: 22px; height: 22px; border: 1.5px solid var(--line-2); border-radius: 5px; background: var(--card); cursor: pointer; display: grid; place-items: center; font-family: var(--body); font-size: 12px; color: var(--ink-3); font-weight: 700; transition: all 0.15s; padding: 0; }
+  .hlog:hover { border-color: var(--ink-2); color: var(--ink-1); }
+  .hlog.active.done { background: var(--teal); border-color: var(--teal); color: white; }
+  .hlog.active.partial { background: var(--teal-soft); border-color: var(--teal); color: var(--teal); }
+  .hlog.active.skip { background: var(--paper-2); border-color: var(--ink-3); color: var(--ink-3); }
+  .hlog.active.miss { background: var(--rose-soft); border-color: var(--danger); color: var(--danger); }
+
+  /* No-streaks philosophy note — same generic .card-adjacent banner shape as an .insight row,
+     but its own class since the content/emphasis (an inline manifesto line) doesn't match
+     .insight's structure (label/meta/text/actions). */
+  .philosophy { padding: 14px 36px 0; }
+  .philosophy-inner { max-width: 1180px; margin: 0 auto; font-family: var(--display); font-style: italic; font-size: 13.5px; color: var(--ink-2); border-left: 2px solid var(--accent-line); padding: 6px 14px; }
+  .philosophy-inner strong { color: var(--accent-dk); font-style: normal; font-weight: 600; font-family: var(--body); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; margin-right: 6px; }
+
+  /* Detail-head sub-parts unique to a habit's identity-first header (name + "I am a ___" +
+     a 3-up stat row) — genuinely new shapes vs. Tasks' .detail-eyebrow/.detail-title/.detail-chips,
+     not a rename of them (see the CONFLICT note above for the padding/size diff that ruled out
+     forcing reuse). Both nest inside the same canonical .detail-head wrapper. */
+  .dh-eyebrow { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 8px; }
+  .dh-title { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: -0.015em; line-height: 1.15; margin-bottom: 6px; }
+  .dh-identity { font-family: var(--display); font-style: italic; font-size: 15px; color: var(--accent); margin-bottom: 12px; }
+  .dh-identity::before { content: "\201C"; margin-right: 2px; }
+  .dh-identity::after { content: "\201D"; margin-left: 2px; }
+  .dh-stats { display: flex; gap: 20px; align-items: baseline; }
+  .dh-stat .dhs-num { font-family: var(--body); font-weight: 800; font-size: 28px; letter-spacing: -0.03em; line-height: 1; color: var(--teal); font-variant-numeric: tabular-nums; }
+  /* .dh-stat.neutral, added here rather than reproducing the prototype's inline
+     `style="color: var(--ink-1);"` on its two non-headline stats (days tracked / total logged) —
+     same "extract the static override into a class" fix as Phase 2's inline-style gap. */
+  .dh-stat.neutral .dhs-num { color: var(--ink-1); }
+  .dh-stat .dhs-num .dhs-unit { font-size: 14px; color: var(--ink-2); font-weight: 500; margin-left: 2px; }
+  .dh-stat .dhs-lbl { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-top: 4px; }
+
+  /* ds-head trend/count annotation — the prototype inlines this same mono-10px/700 span twice
+     (a teal "▲ +N pts" trend, a muted "N done · N partial · N skip" tally). Extracted into one
+     class with two color modifiers instead of two separate inline styles. */
+  .ds-trend { font-family: var(--mono); font-size: 10px; font-weight: 700; }
+  .ds-trend.up { color: var(--teal); }
+  .ds-trend.muted { color: var(--ink-3); }
+
+  .framework-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fw-item { background: var(--paper); border: 1px solid var(--line-1); border-left: 3px solid; border-radius: 8px; padding: 12px 14px; }
+  .fw-item.cue { border-left-color: var(--amber); }
+  .fw-item.craving { border-left-color: var(--rose); }
+  .fw-item.response { border-left-color: var(--blue); }
+  .fw-item.reward { border-left-color: var(--teal); }
+  .fw-item .fw-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+  .fw-item .fw-label .fw-rule { font-style: italic; font-family: var(--display); text-transform: none; letter-spacing: 0; color: var(--ink-4); font-weight: 400; font-size: 10px; }
+  .fw-item .fw-value { font-size: 13px; line-height: 1.4; color: var(--ink-1); }
+
+  .stack-env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .stack-item { background: var(--paper); border: 1px solid var(--line-1); border-radius: 8px; padding: 12px 14px; }
+  .stack-item .si-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 4px; }
+  .stack-item .si-value { font-size: 13px; line-height: 1.4; color: var(--ink-1); }
+  .stack-item .si-value .stack-arrow { color: var(--accent); margin: 0 6px; font-weight: 700; }
+
+  .consistency-chart { margin-top: 8px; }
+  .consistency-chart svg { width: 100%; height: 60px; display: block; }
+  .cc-scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); margin-top: 4px; font-weight: 600; }
+
+  .chain-full { display: grid; grid-template-columns: repeat(30, 1fr); gap: 3px; margin-top: 6px; }
+  .chain-full .cf-day { aspect-ratio: 1 / 1; background: var(--paper-2); border-radius: 2px; position: relative; }
+  .chain-full .cf-day.done { background: var(--teal); }
+  .chain-full .cf-day.partial { background: var(--teal-soft); border: 1px solid var(--teal); }
+  .chain-full .cf-day.skip { background: var(--paper-2); }
+  .chain-full .cf-day.skip::after { content: ""; position: absolute; inset: 40%; background: var(--ink-4); border-radius: 50%; }
+  .chain-full .cf-day.miss { background: var(--rose-soft); }
+  .chain-full .cf-day.today { outline: 1.5px solid var(--accent); outline-offset: 1px; z-index: 2; }
+  .chain-labels { display: flex; justify-content: space-between; margin-top: 6px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); font-weight: 600; }
+
+  .log-history { display: flex; flex-direction: column; }
+  .log-row { display: grid; grid-template-columns: 100px 1fr auto auto; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-1); font-size: 12.5px; }
+  .log-row:last-child { border-bottom: none; }
+  .log-row .lr-date { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); font-weight: 600; }
+  .log-row .lr-date .lr-time { color: var(--ink-3); font-weight: 500; }
+  .log-row .lr-value { font-family: var(--mono); font-size: 11px; color: var(--ink-1); font-weight: 700; }
+  .log-row .lr-value.muted { color: var(--ink-3); font-weight: 500; }
+  .log-row .lr-state { font-family: var(--mono); font-size: 9.5px; padding: 2px 7px; border-radius: 999px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .log-row .lr-state.done { background: var(--teal-soft); color: var(--teal); }
+  .log-row .lr-state.partial { background: var(--teal-soft); color: var(--teal); opacity: 0.7; }
+  .log-row .lr-state.skip { background: var(--paper-2); color: var(--ink-3); }
+  .log-row .lr-state.miss { background: var(--rose-soft); color: var(--danger); }
+  .log-row .lr-note { font-family: var(--display); font-style: italic; color: var(--ink-2); font-size: 12px; }
+
+  .cd-links { display: flex; flex-direction: column; gap: 10px; }
+  .cd-link { display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; background: var(--paper); border: 1px solid var(--line-1); border-radius: 8px; }
+  .cd-link .cd-icn { width: 32px; height: 32px; background: var(--plum-soft); color: var(--plum); border-radius: 7px; display: grid; place-items: center; }
+  .cd-link .cd-icn svg { width: 15px; height: 15px; stroke-width: 1.7; }
+  .cd-link .cd-icn.blue { background: var(--blue-soft); color: var(--blue); }
+  .cd-link .cd-info .cd-title { font-weight: 600; font-size: 13px; }
+  .cd-link .cd-info .cd-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+  .cd-link .cd-count { font-family: var(--body); font-weight: 800; font-size: 20px; color: var(--plum); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .cd-link .cd-count.blue { color: var(--blue); }
+
+  /* J/K selection highlight for the Today/Archive/Correlations list rows — no prototype shows
+     these views, so no selected treatment existed to extract. Mirrors the existing
+     .list-row.event.selected / .task-row.selected precedent (accent-soft background) instead of
+     inventing a new selection language. */
+  .habit-row.selected { background: var(--accent-soft); border-radius: 8px; }
+  .list-row.habit.selected { background: var(--accent-soft); }
+
+  /* Full color-modifier set for .cd-icn/.cd-count, needed by the Correlations view (new layout,
+     no prototype — see phase_4_habits.md item 6) so each habit's row can use its own
+     category_color rather than the prototype's two hardcoded instances (plum default + one
+     inline-styled blue override, itself already extracted into .blue above). Same palette as
+     .pill's existing color modifiers, just applied to this component too. */
+  .cd-link .cd-icn.teal { background: var(--teal-soft); color: var(--teal); }
+  .cd-link .cd-icn.amber { background: var(--amber-soft); color: var(--amber); }
+  .cd-link .cd-icn.danger { background: var(--rose-soft); color: var(--danger); }
+  .cd-link .cd-icn.neutral { background: var(--paper-2); color: var(--ink-3); }
+  .cd-link .cd-count.teal { color: var(--teal); }
+  .cd-link .cd-count.amber { color: var(--amber); }
+  .cd-link .cd-count.danger { color: var(--danger); }
+  .cd-link .cd-count.neutral { color: var(--ink-3); }
+
+  /* The prototype's own last .detail-section uses an inline `style="border-bottom: none;"` —
+     the exact class of static-value inline style visual_contract.md disallows (same gap Phase 2
+     fixed for its own inline styles). Extracted as a :last-of-type rule instead (not :last-child
+     — .detail-actions always follows as a sibling, so the last .detail-section is never literally
+     the final child) — applies automatically, no class or inline style needed. Generic, not
+     habit-specific: incidentally also removes the harmless-but-redundant double border where
+     Tasks'/Schedule's own last .detail-section met .detail-actions' border-top. */
+  .detail-section:last-of-type { border-bottom: none; }
+
+  /* .habit-list / .cd-links, reused in a second context this phase (Habits module's own Today
+     view, and its Correlations view) — child-combinator-scoped so the padding only applies when
+     one of these is rendered directly inside a .pane-body (this phase's own usage), not when
+     .habit-list sits inside Today-dashboard's .card (Phase 1, already has its own padding) or
+     .cd-links sits inside a .detail-section (already has its own padding). Replaces what would
+     otherwise be a static inline `style="padding:16px"` on each wrapper. */
+  .pane-body > .habit-list { padding: 16px; }
+  .pane-body > .cd-links { padding: 16px; }
+
+  /* Archive row's category pill needs a gap from the habit name — scoped to .list-row.habit's
+     own .ti so Tasks'/Schedule's .list-row .ti usage elsewhere is untouched. */
+  .list-row.habit .ti { display: flex; align-items: center; gap: 8px; }
+
+  /* ============================================================================================
+     FINANCE (Phase 5) — extracted from console_finance_prototype.html.
+     Structurally different from Tasks/Schedule/Habits: NOT the twopane/flush shell — reuses
+     Today-dashboard's own plain .content/.content-inner + .page-head/.card/.two-col components
+     (see phase_5_finance.md's "Resolved conflicts" section for the full reasoning). Reused
+     verbatim, no changes: .page-head/.page-title/.page-sub/.page-actions, .card/.card-head/
+     .card-title/.card-sub (Phase 1, Today), .two-col/.two-col.flip (Phase 1), .pill.* (design
+     library), .modal-overlay/.modal/.modal-field/.pill-segment (Schedule/Habits' modal system,
+     reused for New Transaction / Fund Envelope / Edit Envelope), .kbd-hints (byte-identical
+     shell component, base.css). .list-row.txn (defined since Phase 1, unused until now — first
+     real consumer is the Transactions view, same "unused template" precedent as Phase 3/4's
+     .list-row.event/.list-row.habit discoveries).
+
+     CONFLICT, resolved — .card/.card-head/.card-body name collision: the prototype's own `.card`
+     (13px radius, overflow:hidden, flex-column, bordered .card-head, separately-padded .card-body)
+     is a different SHAPE from the canonical `.card` above (single padded block, no head/body
+     split) despite sharing a name — but it's nearly byte-identical to the already-extracted
+     `.pane`/`.pane-head`/`.pane-body` (Tasks/Schedule/Habits' twopane shell). Finance's card-
+     shaped sections (Envelopes, Recent transactions) reuse `.pane`/`.pane-head`/`.pane-title`/
+     `.pane-meta`/`.pane-body` instead of a second conflicting `.card` shape — the same "same name,
+     different shape" drift Phase 1 resolved for `.segmented`/`.breadcrumb`, just inverted.
+
+     CONFLICT, resolved — `.metrics-strip` vs. `.metrics-row`: Finance doesn't use the shared
+     `.metrics-row` header pattern at all (checked and logged in base.css's own header comment
+     during the Phase 2 checksum pass — Finance's prototype has a different page-head treatment).
+     Its `.metrics-strip` reuses `.metric`'s inner classes (`.mnum`/`.mlbl`/`.mtrend`) scoped under
+     a new wrapper for its own padding/radius/font-size deltas — same precedent as `.pane .task-row`
+     scoping, not a full parallel component. `.mnum.pos`/`.neg`/`.warn` are added at the top level
+     (generic color modifiers, like Phase 4's `.mnum.teal`/`.amber`), not Finance-scoped.
+
+     REAL BUG, found + fixed in browser verification — `.view-tabs` had no rule at all. Finance's
+     `renderViewTabs()` emits a bare `<div class="view-tabs">` (not `.view-tabs-row > .view-tabs-
+     inner`, since Finance skips that shared Tasks/Schedule/Habits header pattern entirely — see the
+     base.css checksum note above). Only `.view-tabs-inner` had the border-bottom/flex/margin rules,
+     so the tabs rendered with zero bottom margin and each `.vtab`'s `margin-bottom: -1px` (meant to
+     sit flush against `.view-tabs-inner`'s border) had nothing to compensate against — the row
+     visually collided with `.metrics-strip` directly below it. Fixed by giving `.view-tabs` its own
+     border-bottom + margin-bottom, same visual result as `.view-tabs-inner` without needing the
+     outer `.view-tabs-row`'s full-bleed wrapper (Finance is already inside `.content-inner`'s own
+     padding/max-width, same as Today). */
+
+  .view-tabs { display: flex; gap: 0; overflow-x: auto; border-bottom: 1px solid var(--line-1); margin-bottom: 20px; }
+
+  .metrics-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .metrics-strip .metric { border-radius: 13px; padding: 16px 18px; }
+  .metrics-strip .metric .mnum { font-size: 28px; }
+  .metric .mnum.pos { color: var(--teal); }
+  .metric .mnum.neg { color: var(--ink-1); }
+  .metric .mnum.warn { color: var(--amber); }
+  .metric .mnum .dollar { color: var(--ink-2); font-weight: 500; }
+
+  /* TO-BE-BUDGETED BANNER — new, no equivalent elsewhere. */
+  .tbb-banner { background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 70%); border: 1px solid var(--accent-line); border-left: 3px solid var(--accent); border-radius: 13px; padding: 22px 26px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; margin-bottom: 20px; }
+  .tbb-left { min-width: 0; }
+  .tbb-lbl { font-family: var(--mono); font-size: 10.5px; color: var(--accent-dk); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 4px; }
+  .tbb-num { font-family: var(--body); font-weight: 800; font-size: 44px; letter-spacing: -0.03em; line-height: 1; color: var(--accent-dk); font-variant-numeric: tabular-nums; }
+  .tbb-num .dollar { color: var(--accent); opacity: 0.7; font-weight: 500; }
+  .tbb-sub { font-family: var(--display); font-style: italic; color: var(--ink-2); font-size: 14px; margin-top: 10px; line-height: 1.4; }
+  .tbb-sub .rollover { color: var(--teal); font-style: normal; font-weight: 600; font-family: var(--body); font-size: 12px; }
+  .tbb-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+  .tbb-actions button { background: var(--card); border: 1px solid var(--accent-line); color: var(--accent-dk); padding: 8px 16px; border-radius: 8px; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; white-space: nowrap; }
+  .tbb-actions button:hover { background: var(--accent-soft); }
+  .tbb-actions button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .tbb-actions button.primary:hover { background: var(--accent-dk); }
+
+  /* Month nav (page-actions), new — not part of any existing shell component. */
+  .month-nav { display: inline-flex; align-items: center; gap: 4px; background: var(--card); border: 1px solid var(--line-2); border-radius: 7px; padding: 4px; }
+  .month-nav button { width: 24px; height: 24px; border: none; background: transparent; color: var(--ink-2); cursor: pointer; border-radius: 4px; display: grid; place-items: center; font-family: var(--mono); }
+  .month-nav button:hover { background: var(--paper-2); color: var(--ink-1); }
+  .month-nav .this-btn { width: auto; padding: 0 10px; font-family: var(--mono); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* ENVELOPES — content padding scoped to .pane-body's Finance usage, same precedent as
+     Phase 4's `.pane-body > .habit-list`/`.pane-body > .cd-links`. */
+  .pane-body > .env-groups { padding: 12px 18px 16px; }
+  .env-section { margin-bottom: 14px; }
+  .env-section:last-child { margin-bottom: 0; }
+  .env-section-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 8px; padding-top: 8px; border-top: 1px solid var(--line-1); }
+  .env-section:first-child .env-section-label { border-top: none; padding-top: 0; }
+  .env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .env-card { background: var(--paper); border: 1px solid var(--line-1); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color 0.15s; }
+  .env-card:hover { border-color: var(--line-2); }
+  .env-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .ec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .ec-name { font-family: var(--display); font-weight: 700; font-size: 13.5px; letter-spacing: -0.01em; }
+  .ec-remain { font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700; }
+  .ec-remain.warn { color: var(--amber); }
+  .ec-remain.danger { color: var(--danger); }
+  .ec-remain.done { color: var(--teal); }
+  .ec-amounts { display: flex; align-items: baseline; gap: 4px; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+  .ec-spent { font-family: var(--body); font-weight: 800; font-size: 20px; letter-spacing: -0.025em; color: var(--ink-1); line-height: 1; }
+  .ec-spent .dollar { color: var(--ink-3); font-weight: 500; }
+  .ec-allocated { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); font-weight: 600; }
+  .ec-bar { height: 4px; background: var(--paper-2); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+  .ec-bar .fill { height: 100%; background: var(--teal); border-radius: 2px; transition: width 0.3s; }
+  .ec-bar.warn .fill { background: var(--amber); }
+  .ec-bar.danger .fill { background: var(--danger); }
+  .ec-bar.savings .fill { background: linear-gradient(90deg, var(--accent-lt), var(--accent)); }
+  .ec-note { font-family: var(--display); font-style: italic; font-size: 11.5px; color: var(--ink-2); line-height: 1.3; }
+  .ec-note .txn-count { font-family: var(--mono); font-style: normal; font-size: 10px; color: var(--ink-3); font-weight: 700; }
+
+  /* TRANSACTIONS (Overview's compact widget — its own shape per Conflict #4 in phase_5_finance.md;
+     the full Transactions view instead uses the pre-existing `.list-row.txn` 4-column template). */
+  .pane-body > .txn-list { padding: 12px 18px 16px; }
+  .txn-list { display: flex; flex-direction: column; }
+  .txn-row { display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line-1); cursor: pointer; }
+  .txn-row:last-child { border-bottom: none; }
+  .txn-row:hover { background: var(--paper); margin: 0 -18px; padding: 10px 18px; }
+  .txn-date { font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .txn-date .txn-day { display: block; color: var(--ink-1); font-size: 15px; font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+  .txn-info .txn-title { font-weight: 500; font-size: 13.5px; line-height: 1.2; }
+  .txn-info .txn-title .fx-badge { display: inline-block; margin-left: 6px; font-family: var(--mono); font-size: 9px; color: var(--plum); background: var(--plum-soft); padding: 1px 5px; border-radius: 3px; font-weight: 700; letter-spacing: 0.04em; vertical-align: 1px; }
+  .txn-info .txn-title .recur-badge { display: inline-block; margin-left: 6px; color: var(--ink-3); }
+  .txn-info .txn-title .recur-badge svg { width: 11px; height: 11px; stroke-width: 2; vertical-align: -1px; }
+  .txn-info .txn-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; display: flex; gap: 8px; align-items: center; }
+  .txn-info .txn-meta .env-tag { color: var(--ink-2); font-weight: 600; }
+  .txn-amount { font-family: var(--body); font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; text-align: right; }
+  .txn-amount.pos { color: var(--teal); }
+  .txn-amount.neg { color: var(--ink-1); }
+  .txn-amount .fx-orig { display: block; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.03em; margin-top: 1px; }
+
+  /* .list-row.txn's inner cells — first real consumer (Transactions view), same "unused
+     template, first real user" precedent as Phase 3/4. Reuses txn-info/txn-title/txn-meta/
+     txn-amount above rather than inventing new inner classes for the 4th column. */
+  .list-row.txn .env-cell { font-family: var(--mono); font-size: 11px; color: var(--ink-2); font-weight: 600; text-align: right; }
+
+  /* INSIGHT CALLOUTS ROW */
+  .insights-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+  .insight-card { background: var(--card); border: 1px solid var(--line-1); border-left: 3px solid; border-radius: 13px; padding: 18px 22px; }
+  .insight-card.warn { border-left-color: var(--amber); }
+  .insight-card.info { border-left-color: var(--plum); }
+  .ic-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .ic-label { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .insight-card.warn .ic-label { color: var(--amber); }
+  .insight-card.info .ic-label { color: var(--plum); }
+  .ic-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+  .ic-headline { font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: -0.015em; line-height: 1.2; margin-bottom: 4px; }
+  .ic-headline .big-num { font-family: var(--body); font-weight: 800; color: inherit; letter-spacing: -0.03em; }
+  .ic-desc { font-family: var(--display); font-style: italic; color: var(--ink-2); font-size: 13px; margin-bottom: 14px; line-height: 1.4; }
+  .ic-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .ic-item { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 7px 10px; background: var(--paper); border-radius: 7px; font-size: 12.5px; }
+  .ic-item .ii-name { font-weight: 600; }
+  .ic-item .ii-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 600; }
+  .ic-item .ii-amount { font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+  .ic-item .ii-tag { font-family: var(--mono); font-size: 9.5px; padding: 2px 7px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .ic-item .ii-tag.zero { background: var(--rose-soft); color: var(--danger); }
+  .ic-item .ii-tag.low { background: var(--amber-soft); color: var(--amber); }
+  .ic-item .ii-tag.ok { background: var(--teal-soft); color: var(--teal); }
+
+  .ic-sparkline { margin-top: 10px; }
+  .ic-sparkline svg { width: 100%; height: 44px; display: block; }
+  .ic-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-1); }
+  .ic-breakdown .bd-item .bd-lbl { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 3px; }
+  .ic-breakdown .bd-item .bd-val { font-family: var(--body); font-weight: 700; font-size: 15px; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+  .ic-breakdown .bd-item .bd-sub { font-family: var(--display); font-style: italic; font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+
+  /* Subscriptions view reuses .ic-list/.ic-item (Overview's subscription-audit callout markup)
+     as a full-page list — needs its own padding when it's a direct .pane-body child (Overview's
+     own .ic-list already gets padding from its .insight-card ancestor instead). Same child-
+     combinator scoping precedent as Phase 4's `.pane-body > .habit-list`. */
+  .pane-body > .ic-list { padding: 16px; }
+  .ic-item .ii-amount .btn-mini { margin-left: 8px; }
+
+  @media (max-width: 1024px) {
+    .metrics-strip { grid-template-columns: repeat(2, 1fr); }
+    .insights-row { grid-template-columns: 1fr; }
+    .tbb-banner { grid-template-columns: 1fr; }
+  }
+
+  /* ============================================================================================
+     FOCUS (Phase 6) — no prototype exists (Console_Features_List.md §6: "not yet prototyped"),
+     built fresh from already-proven atomic components, same precedent Phase 3 used for its new
+     event modal and Phase 5 used for Transactions/Envelopes/Subscriptions/Reports. See
+     docs/phase_prompts/phase_6_focus.md for the full design-decision log. Reused verbatim, no new
+     rules needed: .pane/.pane-head/.pane-title/.pane-meta/.pane-body (list rows go directly into
+     .pane-body with no wrapper div, same as Finance's Transactions view — .list-row already carries
+     its own padding), .pill-segment (mode picker + trigger-kind picker), .modal-field/.modal-row
+     (the config panel reuses these OUTSIDE of any .modal — they're just label+input styling, not
+     modal-chrome-dependent), .type-dot.* (Schedule's per-type colors, reused as-is per Design
+     Decision #2 — Focus's session `type` is literally Schedule's TYPES array, not a parallel one),
+     .modal-exc-picker (reused for the soft-strict checkbox despite its Schedule-era name — it's a
+     generic checkbox+label row, same reuse call as Finance reusing it for "recurring subscription"),
+     .btn/.btn.accent/.btn.secondary/.btn.danger, .agenda-date-label (Log view's date grouping,
+     identical to Schedule's Agenda), .list-row .num-mono (duration column). */
+
+  .focus-timer-panel { max-width: 640px; margin: 0 auto 24px; text-align: center; }
+  .ft-clock { font-family: var(--body); font-weight: 800; font-size: 64px; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink-2); margin: 10px 0 4px; }
+  .ft-clock.active { color: var(--accent); }
+  .ft-clock.overtime { color: var(--danger); }
+  .ft-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+  .ft-controls { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
+  .ft-config { max-width: 520px; margin: 26px auto 0; display: flex; flex-direction: column; gap: 14px; text-align: left; }
+  .ft-config-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ft-target-row { display: flex; align-items: center; gap: 10px; }
+  .ft-target-row .modal-field { flex: 1; }
+
+  /* .list-row.focus — genuinely new template, no unused pre-existing one to reuse here (unlike
+     Phase 3/4/5's .list-row.event/.habit/.report discoveries). 4 columns: time-range / title+meta
+     (mode pill + type dot) / trigger pill / duration, same visual grammar as .list-row.event. */
+  .list-row.focus { grid-template-columns: 100px 1fr auto 70px; }
+  .list-row.focus .ft-time-range { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); }
+  .list-row.focus .ft-row-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+  .list-row.focus .ft-trigger { justify-self: end; }
+  .list-row.focus.selected { background: var(--accent-soft); }
+
+  .session-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .pane-body > .session-summary-grid { padding: 16px; }
+  .breakdown-list { display: flex; flex-direction: column; }
+  .breakdown-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--line-1); font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-row .br-val { font-weight: 700; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+  .pane-body > .breakdown-list { padding: 4px 18px 16px; }
+
+  /* Soft-strict mode (Design Decision #5, phase_6_focus.md) — dims sidebar/topbar, never blocks
+     clicks. Restored to full opacity on hover so the user can still see what they're navigating
+     to. Toggled on <body> from js/app.js (not scoped to the Focus module's own lifecycle) so it
+     persists correctly if the user navigates away while a strict session is still running. */
+  body.focus-strict .sidebar,
+  body.focus-strict .topbar { opacity: 0.4; transition: opacity 0.15s; }
+  body.focus-strict .sidebar:hover,
+  body.focus-strict .topbar:hover { opacity: 1; }
 

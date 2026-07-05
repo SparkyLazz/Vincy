@@ -449,7 +449,7 @@
 
     return (
       '<div class="modal-overlay" id="sched-modal">' +
-        '<div class="modal">' +
+        '<div class="modal wide">' +
           '<div class="modal-head"><span class="modal-title">' + (isNew ? 'New event' : 'Edit event') + '</span><button class="modal-close" data-act="modal-cancel">&times;</button></div>' +
           '<div class="modal-body">' +
             recurNote +

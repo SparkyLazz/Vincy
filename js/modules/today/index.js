@@ -122,19 +122,32 @@
     );
   }
 
-  function buildHabitsCard(habits) {
-    var body = habits.length
-      ? '<div class="habit-list">' + habits.map(function (h) {
+  // DRIFT (Phase 4 cross-check, same re-check discipline Phase 2 applied to Quick Capture and
+  // Phase 3 applied to the calendar card): this originally hardcoded an empty `.htoggle` and a
+  // `width:0%` fill for every row, since `habits`/`habit_logs` were always empty before Phase 4.
+  // Now wired to each active habit's real today state (`.htoggle.done/.partial/.skip/.miss`) and
+  // real rolling 30-day consistency %, via `Console.lib.habits` — not a second copy of that math,
+  // same reason Console.lib.capture is shared between this module and Tasks. Read-only here (no
+  // click handler), matching the calendar/tasks cards' own "snapshot, not an editor" behavior on
+  // this dashboard — logging happens in the Habits module itself.
+  function buildHabitsCard(habits, habitLogs) {
+    var hlib = Console.lib.habits;
+    var todayISO = fmt.todayISO();
+    var active = habits.filter(function (h) { return h.status === 'active'; });
+    var body = active.length
+      ? '<div class="habit-list">' + active.map(function (h) {
+          var log = hlib.findLog(habitLogs, h.id, todayISO);
+          var pct = hlib.consistency30(h.id, habitLogs, todayISO, h.created_at);
           return (
             '<div class="habit-row">' +
-              '<div class="htoggle"></div>' +
+              '<div class="htoggle' + (log ? ' ' + log.state : '') + '"></div>' +
               '<div class="hinfo"><div class="hname">' + (h.name || 'Untitled') + '</div></div>' +
-              '<div class="hbar"><div class="fill" style="width:0%;"></div></div>' +
-              '<div class="hpct">0%</div>' +
+              '<div class="hbar' + (pct < 70 ? ' warn' : '') + '"><div class="fill" style="width:' + pct + '%;"></div></div>' +
+              '<div class="hpct">' + pct + '%</div>' +
             '</div>'
           );
         }).join('') + '</div>'
-      : emptyCard('No habits yet', 'Habits module ships in Phase 4.');
+      : emptyCard('No habits yet', 'Add your first one from Habits.');
     return (
       '<div class="card">' +
         '<div class="card-head"><span class="card-title">Today’s habits</span><span class="card-sub">rolling 30d</span></div>' +
@@ -200,17 +213,34 @@
     );
   }
 
-  function buildMoneyCard(transactions, envelopes) {
-    if (!transactions.length && !envelopes.length) {
+  // DRIFT (Phase 5 cross-check, same re-check discipline Phase 2/3/4 applied to their own Today
+  // cards): this originally read `e.target`/`e.spent` and `e.name` directly off an envelope row —
+  // fields that never existed once Finance's real schema (js/db.js, docs/phase_prompts/
+  // phase_5_finance.md) landed: the real fields are `allocated` (not `target`) and a category
+  // name reached via `category_id` (not a `name` on the envelope itself); `spent` is computed
+  // from `transactions` at read time, never stored (same architectural call Phase 4 made for
+  // habit consistency). Also filtered "net" to all-time transactions, mislabeled as "this month" —
+  // now filters to the current calendar period like Finance's own Overview does.
+  function buildMoneyCard(transactions, envelopes, categories) {
+    var todayISO = fmt.todayISO();
+    var period = todayISO.slice(0, 7);
+    var txnsThisPeriod = transactions.filter(function (t) { return (t.date || '').slice(0, 7) === period; });
+    var envsThisPeriod = envelopes.filter(function (e) { return e.period === period; });
+    if (!txnsThisPeriod.length && !envsThisPeriod.length) {
       return '<div class="card"><div class="card-head"><span class="card-title">Money snapshot</span></div>' +
-        emptyCard('No transactions yet', 'Finance module ships in Phase 5.') + '</div>';
+        emptyCard('No transactions yet', 'Add your first one from Finance.') + '</div>';
     }
-    var net = transactions.reduce(function (sum, t) { return sum + (t.amount || 0); }, 0);
-    var envRows = envelopes.map(function (e) {
-      var pct = e.target ? Math.min(100, Math.round((e.spent || 0) / e.target * 100)) : 0;
+    var net = txnsThisPeriod.reduce(function (sum, t) { return sum + (t.amount || 0); }, 0);
+    var envRows = envsThisPeriod.map(function (e) {
+      var cat = categories.find(function (c) { return c.id === e.category_id; });
+      var spent = txnsThisPeriod
+        .filter(function (t) { return t.envelope_id === e.id; })
+        .reduce(function (s, t) { return s + Math.abs(t.amount < 0 ? t.amount : 0); }, 0);
+      var pct = e.allocated ? Math.min(100, Math.round(spent / e.allocated * 100)) : 0;
+      var barCls = pct >= 90 ? 'warn' : (pct >= 1 ? 'ok' : '');
       return (
-        '<div class="env-row"><span class="ename">' + (e.name || 'Untitled') + '</span>' +
-        '<div class="ebar"><div class="fill" style="width:' + pct + '%;"></div></div>' +
+        '<div class="env-row"><span class="ename">' + (cat ? cat.name : 'Untitled') + '</span>' +
+        '<div class="ebar' + (barCls ? ' ' + barCls : '') + '"><div class="fill" style="width:' + pct + '%;"></div></div>' +
         '<span class="epct">' + pct + '%</span></div>'
       );
     }).join('');
@@ -223,11 +253,37 @@
     );
   }
 
-  function buildSuggestedFocusCard() {
+  // Wired for real in Phase 6 (Focus). Candidates are today's open tasks that don't already have
+  // a focus session logged today (the "cross-check" from phase_6_focus.md scope item #6 — don't
+  // keep suggesting something the user already focused on, even if it's not marked done yet),
+  // sorted by priority (high first) and capped at 3 so this stays a nudge, not a second task list.
+  // "Start focus" is the one sanctioned cross-module UI affordance outside Focus's own Timer view
+  // (phase_6_focus.md Design Decision #6): a plain #/focus/task/<id> hash link, no JS wiring needed
+  // — the router's existing hashchange handling and Focus's own checkPendingTrigger() do the rest.
+  var PRIORITY_RANK = { high: 0, med: 1, low: 2 };
+
+  function buildSuggestedFocusCard(candidates) {
+    if (!candidates.length) {
+      return (
+        '<div class="card">' +
+          '<div class="card-head"><span class="card-title">Suggested focus blocks</span></div>' +
+          emptyCard('Nothing to suggest', 'Every open task due today already has a focus session, or nothing’s due.') +
+        '</div>'
+      );
+    }
+    var body = '<div class="task-list">' + candidates.map(function (t) {
+      return (
+        '<div class="task-row">' +
+          '<span class="check"></span>' +
+          '<div><div class="ttitle">' + (t.title || 'Untitled') + '</div></div>' +
+          '<a class="pill neutral" href="#/focus/task/' + t.id + '">Start focus →</a>' +
+        '</div>'
+      );
+    }).join('') + '</div>';
     return (
       '<div class="card">' +
-        '<div class="card-head"><span class="card-title">Suggested focus blocks</span></div>' +
-        emptyCard('No suggestions yet', 'Activates once Tasks and Schedule (Phases 2–3) have data.') +
+        '<div class="card-head"><span class="card-title">Suggested focus blocks</span><span class="card-sub">' + candidates.length + '</span></div>' +
+        body +
       '</div>'
     );
   }
@@ -261,9 +317,9 @@
       buildInsightSection(data.insights) +
       buildStatsStrip(data.stats) +
       '<div class="two-col">' + buildCalendarCard(data.eventsToday, data.logsByEventId) + buildTasksCard(data.tasksToday) + '</div>' +
-      '<div class="two-col flip">' + buildHabitsCard(data.habits) + buildQuickCaptureCard(data.inboxDepth) + '</div>' +
-      '<div class="two-col">' + buildWeekCard(data.weekDays, data.tasksByDate) + buildMoneyCard(data.transactions, data.envelopes) + '</div>' +
-      '<div class="two-col flip">' + buildSuggestedFocusCard() + buildWaitingCard(data.waitingTasks) + '</div>';
+      '<div class="two-col flip">' + buildHabitsCard(data.habits, data.habitLogs) + buildQuickCaptureCard(data.inboxDepth) + '</div>' +
+      '<div class="two-col">' + buildWeekCard(data.weekDays, data.tasksByDate) + buildMoneyCard(data.transactions, data.envelopes, data.categories) + '</div>' +
+      '<div class="two-col flip">' + buildSuggestedFocusCard(data.suggestedFocusTasks) + buildWaitingCard(data.waitingTasks) + '</div>';
     wireQuickCapture(container);
   }
 
@@ -281,7 +337,8 @@
       db.getAll('focus_sessions'),
       db.getAll('transactions'),
       db.getAll('envelopes'),
-      db.getAll('event_logs')
+      db.getAll('event_logs'),
+      db.getAll('categories')
     ]).then(function (results) {
       var insights = results[0];
       var allTasks = results[1];
@@ -292,6 +349,7 @@
       var transactions = results[6];
       var envelopes = results[7];
       var eventLogsAll = results[8];
+      var categories = results[9];
 
       var logsByEventId = {};
       eventLogsAll.forEach(function (l) { if (l.date === todayISO) logsByEventId[l.event_id] = l; });
@@ -306,9 +364,16 @@
         tasksByDate[t.due_date] = (tasksByDate[t.due_date] || 0) + 1;
       });
 
-      var focusHoursToday = focusSessions
-        .filter(function (s) { return (s.start_at || '').slice(0, 10) === todayISO; })
+      var focusSessionsToday = focusSessions.filter(function (s) { return (s.start_at || '').slice(0, 10) === todayISO; });
+      var focusHoursToday = focusSessionsToday
         .reduce(function (sum, s) { return sum + ((s.duration_min || 0) / 60); }, 0);
+
+      var focusedTaskIdsToday = {};
+      focusSessionsToday.forEach(function (s) { if (s.task_id) focusedTaskIdsToday[s.task_id] = true; });
+      var suggestedFocusTasks = tasksToday
+        .filter(function (t) { return t.status !== 'done' && !focusedTaskIdsToday[t.id]; })
+        .sort(function (a, b) { return (PRIORITY_RANK[a.priority] != null ? PRIORITY_RANK[a.priority] : 3) - (PRIORITY_RANK[b.priority] != null ? PRIORITY_RANK[b.priority] : 3); })
+        .slice(0, 3);
 
       var habitLogsToday = {};
       habitLogs.forEach(function (l) { if (l.date === todayISO) habitLogsToday[l.habit_id] = l.state; });
@@ -333,13 +398,16 @@
         eventsToday: eventsToday,
         tasksToday: tasksToday,
         habits: habits,
+        habitLogs: habitLogs,
         weekDays: week,
         tasksByDate: tasksByDate,
         transactions: transactions,
         envelopes: envelopes,
+        categories: categories,
         waitingTasks: waitingTasks,
         inboxDepth: inboxDepth,
-        logsByEventId: logsByEventId
+        logsByEventId: logsByEventId,
+        suggestedFocusTasks: suggestedFocusTasks
       };
     });
   }

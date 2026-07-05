@@ -163,6 +163,12 @@
   .metric .mtrend { font-size: 9.5px; color: var(--success); font-weight: 700; }
   .metric .mtrend.warn { color: var(--amber); }
   .metric .mtrend.down { color: var(--ink-3); }
+  /* .mnum color modifiers, added in Phase 4 (Habits) — console_habits_prototype.html's metrics
+     row colors its "best" metric teal and its "watch" metric amber. Generic pair, not
+     habit-specific structurally, so it lives alongside the shared .metric component rather than
+     in components.css with the rest of Habits' own classes. */
+  .metric .mnum.teal { color: var(--teal); }
+  .metric .mnum.amber { color: var(--amber); }
 
   /* ============ TWO-PANE ROW (Tasks/Habits — not Schedule/Finance, checked, see note above) ============ */
   .twopane-row { padding: 18px 36px 70px; flex: 1; overflow: hidden; min-height: 0; }

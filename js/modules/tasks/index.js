@@ -294,10 +294,10 @@
       : 'No due date';
 
     var scheduleInline = inlineEditing === 'schedule'
-      ? '<div class="detail-section"><input type="date" id="inline-schedule-input" value="' + (task.due_date || '') + '"></div>'
+      ? '<div class="detail-section"><input type="date" class="input" id="inline-schedule-input" value="' + (task.due_date || '') + '"></div>'
       : '';
     var moveInline = inlineEditing === 'move'
-      ? '<div class="detail-section"><select id="inline-move-input"><option value="">No project</option>' +
+      ? '<div class="detail-section"><select class="input" id="inline-move-input"><option value="">No project</option>' +
           cache.projects.map(function (p) { return '<option value="' + p.id + '"' + (p.id === task.project_id ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>'; }).join('') +
         '</select></div>'
       : '';
@@ -307,17 +307,17 @@
 
     var actions = task.status === 'inbox'
       ? (
-        '<button class="primary" data-act="process-today">Today</button>' +
-        '<button data-act="process-schedule">Schedule</button>' +
-        '<button data-act="process-someday">Someday</button>' +
-        '<button data-act="process-waiting">Waiting</button>' +
-        '<button class="danger" data-act="delete">Delete</button>'
+        '<button class="primary" data-act="process-today" title="Schedule for today and move out of the inbox">Today</button>' +
+        '<button data-act="process-schedule" title="Pick a due date">Schedule</button>' +
+        '<button data-act="process-someday" title="Move to Someday/Maybe — no due date, out of the active views">Someday</button>' +
+        '<button data-act="process-waiting" title="Mark as waiting on someone or something else">Waiting</button>' +
+        '<button class="danger" data-act="delete" title="Permanently delete this task">Delete</button>'
       ) : (
-        '<button class="primary" data-act="complete">' + (task.status === 'done' ? '↩ Reopen' : '✓ Complete') + '</button>' +
-        '<button data-act="schedule">Schedule</button>' +
-        '<button data-act="snooze">Snooze</button>' +
-        '<button data-act="move">Move</button>' +
-        '<button class="danger" data-act="delete">Delete</button>'
+        '<button class="primary" data-act="complete" title="' + (task.status === 'done' ? 'Reopen this task' : 'Mark this task complete') + '">' + (task.status === 'done' ? '↩ Reopen' : '✓ Complete') + '</button>' +
+        '<button data-act="schedule" title="Pick a due date">Schedule</button>' +
+        '<button data-act="snooze" title="Push the due date forward by one day">Snooze</button>' +
+        '<button data-act="move" title="Move this task to a different project">Move</button>' +
+        '<button class="danger" data-act="delete" title="Permanently delete this task">Delete</button>'
       );
 
     return (
@@ -612,7 +612,7 @@
 
   function focusCapture() {
     var el = document.getElementById('cap-input');
-    if (el) el.focus();
+    if (el) { el.scrollIntoView({ block: 'nearest' }); el.focus(); }
   }
 
   function onKeydown(e) {
