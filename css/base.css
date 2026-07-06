@@ -15,25 +15,6 @@
        since it's still shared by 2 of 4 and is a generic layout primitive, not module-specific
        content — but don't assume Schedule/Finance will use it without checking their prototypes
        when their phases start. */
-
-  /* ============ MOTION SYSTEM (FX/animation polish pass) ============
-     Added after every screen was functionally complete (Phases 1-9), as its own dedicated pass —
-     not a new feature, a finishing touch. Subtle/professional per the user's own call: short
-     durations, no bounce/overshoot, entrance-only (no exit animations — see below), route/view
-     switches stay instant (only in-page elements animate). Zero JS changes anywhere in this pass:
-     every animation here either (a) autoplays because the element is freshly inserted via
-     `innerHTML` (true for every module's list/card rows and for the 4 modules' hand-rolled modal
-     overlays — see js/modules/*/index.js's renderModal() pattern), or (b) autoplays via the
-     `:not([hidden])` trick below, which works because [hidden] resolves to `display:none` — going
-     from no box to a box is exactly the trigger CSS animations need to (re)start, so toggling the
-     existing `hidden` attribute (already the app's one and only show/hide convention, see
-     Console_Workflow.md) is enough. This is also why there's no matching exit/close animation:
-     doing that smoothly would require delaying the actual DOM removal with a JS timeout in every
-     module's closeModal()/hidden-toggle, which is real logic risk for a pass that's supposed to be
-     zero-risk polish. Snapping closed instead of fading is an intentional trade-off, not an
-     oversight — revisit only if the user asks for it explicitly.
-     Reduced motion: honored globally below, this must stay the first real rule in the cascade so
-     nothing loaded later can out-specificity it. */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.001ms !important;
