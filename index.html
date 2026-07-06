@@ -83,11 +83,23 @@
         workspace<span class="sep">/</span><span class="here">today</span>
       </div>
       <div class="topbar-spacer"></div>
-      <div class="segmented">
-        <button>7d</button>
-        <button class="active">30d</button>
-        <button>90d</button>
-        <button>all</button>
+      <!-- Universal range filter (Phase 7 / Analytics) — visual-only through Phase 6 (js/app.js's
+           wireTopbarSegmented comment said as much since Phase 1); wired for real range-filtering
+           here, but only Analytics reads the persisted value. See docs/phase_prompts/
+           phase_7_analytics.md Design Decision #2. -->
+      <div class="range-filter">
+        <div class="segmented" id="range-segmented">
+          <button data-range="7d">7d</button>
+          <button data-range="30d" class="active">30d</button>
+          <button data-range="90d">90d</button>
+          <button data-range="all">all</button>
+          <button data-range="custom">custom</button>
+        </div>
+        <div class="range-popover" id="range-popover" hidden>
+          <div class="modal-field"><label>From</label><input type="date" class="input" id="range-start"></div>
+          <div class="modal-field"><label>To</label><input type="date" class="input" id="range-end"></div>
+          <button class="btn accent" id="range-apply">Apply</button>
+        </div>
       </div>
       <button class="cmd-trigger">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>

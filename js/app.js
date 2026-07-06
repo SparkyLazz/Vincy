@@ -63,16 +63,84 @@
     else { item.style.display = 'none'; }
   }
 
+  // Phase 7: real range-filtering, scoped to Analytics only (phase_7_analytics.md Design
+  // Decision #2 — the control is global topbar chrome, but retrofitting live filtering into
+  // Today/Tasks/Schedule/Habits/Finance/Focus would mean touching 6 already-verified, gated
+  // modules for a feature none of them were built against; each keeps its own existing
+  // date-nav/period logic untouched). `Console.analyticsRange` is the in-memory cache Analytics
+  // reads from directly (synchronous, no DB round-trip needed on every render); it's kept in sync
+  // with the persisted `preferences` row so the choice survives a reload.
+  Console.analyticsRange = { preset: '30d', start: null, end: null };
+
+  function persistAnalyticsRange(range) {
+    Console.analyticsRange = range;
+    Console.db.setPref('analytics_range', range);
+    // The topbar control lives outside every module's own container (it's shell chrome, wired
+    // once here in app.js), so Analytics — the only module that reads this — can't catch a range
+    // change via its own click delegation. A plain DOM CustomEvent is the smallest thing that
+    // works; no other module needs to know this fired.
+    document.dispatchEvent(new CustomEvent('analytics-range-changed', { detail: range }));
+  }
+
+  function applyRangeButtonState(preset) {
+    document.querySelectorAll('#range-segmented button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.range === preset);
+    });
+  }
+
   function wireTopbarSegmented() {
-    // Visual-only for Phase 1 — matches the prototype's own behavior (toggles .active,
-    // doesn't yet filter anything). Real range-filtering lands with Analytics (Phase 7).
-    document.querySelectorAll('.topbar .segmented').forEach(function (group) {
-      group.addEventListener('click', function (e) {
-        var btn = e.target.closest('button');
-        if (!btn) return;
-        group.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
+    var group = document.getElementById('range-segmented');
+    var popover = document.getElementById('range-popover');
+    var startInput = document.getElementById('range-start');
+    var endInput = document.getElementById('range-end');
+    var applyBtn = document.getElementById('range-apply');
+    if (!group) return;
+
+    group.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var preset = btn.dataset.range;
+      if (preset === 'custom') {
+        // Don't commit yet — wait for Apply, so clicking "custom" then clicking away doesn't
+        // silently switch the active range with no explicit start/end chosen.
+        if (popover) popover.hidden = false;
+        return;
+      }
+      if (popover) popover.hidden = true;
+      applyRangeButtonState(preset);
+      persistAnalyticsRange({ preset: preset, start: null, end: null });
+    });
+
+    if (applyBtn) {
+      applyBtn.addEventListener('click', function () {
+        var start = startInput && startInput.value;
+        var end = endInput && endInput.value;
+        if (!start || !end || start > end) return; // no silent partial/invalid range
+        if (popover) popover.hidden = true;
+        applyRangeButtonState('custom');
+        persistAnalyticsRange({ preset: 'custom', start: start, end: end });
       });
+    }
+
+    // Click-outside-to-dismiss, standard popover behavior — doesn't discard a not-yet-applied
+    // date selection, just closes without committing (Apply is still the only way to commit).
+    document.addEventListener('click', function (e) {
+      if (!popover || popover.hidden) return;
+      if (e.target.closest('.range-filter')) return;
+      popover.hidden = true;
+    });
+  }
+
+  function restoreAnalyticsRange() {
+    Console.db.getPref('analytics_range', { preset: '30d', start: null, end: null }).then(function (range) {
+      Console.analyticsRange = range;
+      applyRangeButtonState(range.preset);
+      if (range.preset === 'custom') {
+        var startInput = document.getElementById('range-start');
+        var endInput = document.getElementById('range-end');
+        if (startInput) startInput.value = range.start;
+        if (endInput) endInput.value = range.end;
+      }
     });
   }
 
@@ -182,6 +250,7 @@
         Console.palette.init();
         wireTopbarSegmented();
         wireFloatingTimerControls();
+        restoreAnalyticsRange();
         refreshNavCounts();
         refreshFloatingTimer();
         // Keep the floating timer's mode/title/pause-label in sync with any change made from

@@ -78,6 +78,15 @@
   .segmented button { background: transparent; border: none; padding: 4px 11px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); cursor: pointer; border-radius: 5px; font-weight: 600; }
   .segmented button.active { background: var(--card); color: var(--ink-1); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
 
+  /* RANGE FILTER (Phase 7 / Analytics) — the "custom" popover anchored under the segmented
+     control. `.range-filter` is just a positioning context (relative), not a visual component of
+     its own — `.segmented` keeps its exact Phase 1 appearance. See
+     docs/phase_prompts/phase_7_analytics.md Design Decision #3. */
+  .range-filter { position: relative; }
+  .range-popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; background: var(--card); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 28px rgba(31,30,27,0.14); padding: 14px; display: flex; flex-direction: column; gap: 10px; width: 200px; }
+  [data-theme="dark"] .range-popover { box-shadow: 0 10px 28px rgba(0,0,0,0.5); }
+  .range-popover[hidden] { display: none; }
+
   .cmd-trigger { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 12px; border: 1px solid var(--line-2); border-radius: 7px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; background: var(--card); min-width: 230px; }
   .cmd-trigger:hover { border-color: var(--ink-3); }
   .cmd-trigger .kbd { background: var(--paper-2); padding: 1px 5px; border-radius: 4px; font-size: 10px; color: var(--ink-2); font-weight: 700; margin-left: auto; }

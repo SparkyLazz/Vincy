@@ -1309,3 +1309,136 @@
   body.focus-strict .sidebar:hover,
   body.focus-strict .topbar:hover { opacity: 1; }
 
+  /* ============================================================================================
+     ANALYTICS (Phase 7) — REBUILT from a real prototype the user commissioned externally and
+     uploaded ("Console Analytics - Design Brief.html", a bundled/templated mockup export) after
+     the first hand-rolled pass. Same "extraction, not recreation" discipline as every other
+     phase's prototype: every value below (paddings, font sizes, colors, grid columns) is taken
+     directly from that file, not redrawn from memory. All `.av-` prefixed classes are new/
+     dedicated to this module — the prototype's per-view layouts are specific enough (fixed SVG
+     viewBoxes, per-view grid-template-columns) that reusing generic `.pane`/`.dual-bar-row` would
+     have meant fighting the existing shape instead of matching the prototype. Still reused
+     verbatim where the prototype's own values are identical to existing library atoms: `.pill.*`
+     (Subscription verdict, still teal/danger — a new near-duplicate micro-pill was NOT added, same
+     "duplicate under a new name is not a new value" precedent as every earlier phase), `.empty`/
+     `.glyph`/`.empty-title`/`.empty-sub` (not-enough-data states, unchanged from the first pass).
+     `.consistency-chart`/`.cc-scale` (Habits' Phase 4 line-chart component) is no longer used by
+     Analytics at all — replaced by this module's own `.av-*` SVG chart markup, so the earlier
+     `.analytics-section`-scoped height overrides of it have been removed; Habits' own usage is
+     untouched. Old `.analytics-section-title`/`.analytics-divider`/`.scatter*`/`.heatmap*` (old)/
+     `.dual-bar-*` rules from the first pass are replaced below — nothing else in the app used
+     them (grepped before deleting). */
+
+  .av-view { border-top: 1px solid var(--line-1); padding-top: 36px; }
+  .av-view:first-child { border-top: none; padding-top: 0; }
+  .av-head { margin-bottom: 16px; }
+  .av-eyebrow { font-family: var(--mono); font-size: 10.5px; color: var(--accent-dk); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 6px; }
+  .av-title { font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: -0.015em; color: var(--ink-1); margin: 0; }
+  .av-desc { font-family: var(--body); font-size: 13px; color: var(--ink-2); margin: 6px 0 0; max-width: 640px; }
+
+  .av-card { background: var(--card); border: 1px solid var(--line-1); border-radius: 14px; padding: 24px 26px; margin-bottom: 44px; }
+  .av-card.tight-top { padding: 10px 26px 20px; }
+  .av-pair-card { background: var(--card); border: 1px solid var(--line-1); border-radius: 14px; padding: 22px 24px; }
+  .av-card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 44px; }
+  .av-mini-card { background: var(--card); border: 1px solid var(--line-1); border-radius: 13px; padding: 16px 18px; }
+  .av-mini-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .av-mini-card-name { font-family: var(--display); font-weight: 700; font-size: 14.5px; letter-spacing: -0.01em; }
+  .av-mini-pill { font-family: var(--mono); font-size: 9px; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; font-weight: 700; white-space: nowrap; }
+  .av-mini-card-title { font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; margin-bottom: 12px; }
+
+  .av-legend { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 18px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+  .av-legend-item { display: inline-flex; align-items: center; gap: 7px; }
+  .av-legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .av-legend-bar { width: 20px; height: 8px; border-radius: 4px; display: inline-block; }
+
+  /* SVG scatter (Project Investment Matrix, Subscription-vs-Usage Matrix) and line charts
+     (Calendar Load vs Backlog, Time-Money Rate, Cost per Focus Hour, Energy Index) use the
+     prototype's own SVG presentation attributes (fill/font-family/stroke set directly on each
+     element) rather than CSS classes — same approach the prototype itself uses, since these are
+     per-view fixed viewBox drawings, not reusable atoms. */
+
+  .av-table { width: 100%; margin-top: 8px; }
+  .av-table-row { display: grid; align-items: center; }
+  .av-table.investment .av-table-row,
+  .av-table.investment .av-table-head { grid-template-columns: 1fr 100px 100px 110px; }
+  .av-table.subs .av-table-row,
+  .av-table.subs .av-table-head { grid-template-columns: 1fr 100px 80px 130px; }
+  .av-table-head { display: grid; }
+  .av-th { text-align: left; font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); font-weight: 700; padding: 8px 10px; border-bottom: 1px solid var(--line-1); }
+  .av-th.right { text-align: right; }
+  .av-td { padding: 9px 10px; border-bottom: 1px solid var(--line-1); font-size: 13px; }
+  .av-td.name { font-weight: 600; }
+  .av-td.right { text-align: right; font-family: var(--mono); font-size: 12.5px; }
+  .av-td.strong { font-weight: 700; }
+  .av-td-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+
+  /* PAIRED BARS — Planned vs Executed (row form). */
+  .av-bar-row { display: grid; grid-template-columns: 120px 1fr 64px; gap: 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line-1); }
+  .av-bar-row:last-child { border-bottom: none; }
+  .av-bar-label { font-weight: 600; font-size: 13.5px; }
+  .av-bar-stack { display: flex; flex-direction: column; gap: 5px; }
+  .av-bar-line { display: flex; align-items: center; gap: 10px; }
+  .av-bar-track { flex: 1 1 auto; max-width: 380px; background: var(--paper-2); border-radius: 5px; overflow: hidden; height: 9px; }
+  .av-bar-track .fill { height: 100%; border-radius: 5px; }
+  .av-bar-value { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
+  .av-bar-value.strong { color: var(--ink-1); font-weight: 700; }
+  .av-bar-delta { text-align: right; font-family: var(--mono); font-size: 12.5px; font-weight: 700; }
+
+  /* PAIRED BARS — Habit ↔ Output Correlation / Theme Day Output (card form, on-day vs off-day). */
+  .av-metric-group { margin-bottom: 12px; }
+  .av-metric-group:last-child { margin-bottom: 0; }
+  .av-metric-head { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; margin-bottom: 6px; }
+  .av-metric-head .delta { color: var(--teal); }
+  .av-metric-bar-line { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .av-metric-bar-line:last-child { margin-bottom: 0; }
+  .av-metric-bar-track { width: 100px; background: var(--paper-2); border-radius: 4px; height: 8px; overflow: hidden; }
+  .av-metric-bar-track.sm { width: 90px; height: 7px; }
+  .av-metric-bar-track .fill { height: 100%; }
+  .av-metric-bar-val { font-family: var(--mono); font-size: 10.5px; color: var(--ink-1); font-weight: 700; }
+  .av-metric-bar-val.off { color: var(--ink-2); font-weight: 400; }
+  .av-metric-bar-tag { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+
+  /* HEATMAP — Productive Hours Heatmap. 25-column grid (row label + 24 hours); cell background is
+     inline (computed per-cell intensity, not a static design value). */
+  .av-heatmap { display: grid; grid-template-columns: 44px repeat(24, 1fr); gap: 3px; margin-bottom: 14px; }
+  .av-heatmap-hour { font-family: var(--mono); font-size: 8.5px; color: var(--ink-3); text-align: center; }
+  .av-heatmap-day { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); font-weight: 700; display: flex; align-items: center; }
+  .av-heatmap-cell { aspect-ratio: 1 / 1; border-radius: 3px; }
+  .av-heatmap-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line-1); }
+  .av-heatmap-peak { font-family: var(--display); font-style: italic; font-size: 13px; color: var(--ink-2); }
+  .av-heatmap-peak strong { font-style: normal; font-weight: 600; color: var(--ink-1); }
+  .av-heatmap-scale { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+  .av-heatmap-swatch { width: 14px; height: 14px; border-radius: 3px; }
+  .av-heatmap-swatch.s1 { background: var(--paper-2); }
+  .av-heatmap-swatch.s2 { background: var(--accent-soft); }
+  .av-heatmap-swatch.s3 { background: var(--accent-lt); }
+  .av-heatmap-swatch.s4 { background: var(--accent); }
+
+  /* DECAY ANALYSIS — ranked list. */
+  .av-decay-row { display: grid; grid-template-columns: 74px 1fr 240px 70px; gap: 16px; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--line-1); }
+  .av-decay-row:last-child { border-bottom: none; }
+  .av-decay-type { font-family: var(--mono); font-size: 9.5px; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; font-weight: 700; text-align: center; }
+  .av-decay-name { font-weight: 600; font-size: 13.5px; }
+  .av-decay-track { background: var(--paper-2); border-radius: 5px; height: 8px; overflow: hidden; }
+  .av-decay-track .fill { height: 100%; border-radius: 5px; }
+  .av-decay-days { text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-family: var(--mono); font-size: 12.5px; font-weight: 700; }
+  .av-decay-warn { color: var(--danger); font-weight: 700; }
+
+  /* LINE CHARTS — Calendar Load vs Backlog, Time-Money Rate, Cost per Focus Hour, Energy Index. */
+  .av-chart-legend { display: flex; gap: 20px; margin-bottom: 14px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+  .av-chart-legend-item { display: inline-flex; align-items: center; gap: 7px; }
+  .av-chart-footer { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 6px; }
+
+  .av-pair-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 44px; }
+  .av-pair-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+  .av-pair-formula { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+  .av-pair-value { font-family: var(--body); font-weight: 800; font-size: 24px; letter-spacing: -0.02em; margin-top: 6px; }
+  .av-pair-value .unit { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+
+  /* ENERGY INDEX — hero treatment, the one view given a gradient background per the prototype. */
+  .av-energy-card { background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 75%); border: 1px solid var(--accent-line); border-radius: 16px; padding: 28px 32px; margin-bottom: 12px; }
+  .av-energy-grid { display: grid; grid-template-columns: 200px 1fr; gap: 30px; align-items: center; }
+  .av-energy-score { font-family: var(--body); font-weight: 800; font-size: 64px; letter-spacing: -0.03em; color: var(--accent-dk); line-height: 1; }
+  .av-energy-label { font-family: var(--mono); font-size: 10.5px; color: var(--accent-dk); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-top: 8px; }
+  .av-energy-sub { font-family: var(--display); font-style: italic; font-size: 13px; color: var(--ink-2); margin-top: 8px; line-height: 1.4; }
+
