@@ -59,7 +59,15 @@
 
   // Draft config for the NOT-YET-STARTED session — only meaningful while idle. Baked into a real
   // focus_sessions row the moment Start is pressed.
-  var draft = { mode: 'pomodoro', triggerKind: 'standalone', triggerId: '', type: 'deep_work', targetMin: 25, strict: false };
+  // Phase 9 (Settings): mode/targetMin read `Console.focusDefaults` (a boot-time cache of the
+  // default_focus_mode/default_focus_duration_min preferences, kept live by Settings' own module)
+  // when set, falling back to the original hardcoded pomodoro/25 — same values as before this
+  // phase, so behavior is unchanged until someone actually sets the preference.
+  function defaultDraft() {
+    var d = Console.focusDefaults;
+    return { mode: (d && d.mode) || 'pomodoro', triggerKind: 'standalone', triggerId: '', type: 'deep_work', targetMin: (d && d.targetMin) || 25, strict: false };
+  }
+  var draft = defaultDraft();
 
   var modalMode = null; // null | 'edit'
   var modalSession = null;
@@ -647,7 +655,7 @@
       currentView = 'timer';
       selectedId = null;
       modalMode = null; modalSession = null;
-      draft = { mode: 'pomodoro', triggerKind: 'standalone', triggerId: '', type: 'deep_work', targetMin: 25, strict: false };
+      draft = defaultDraft();
       container.addEventListener('click', onContainerClick);
       keydownHandler = onKeydown;
       document.addEventListener('keydown', keydownHandler);

@@ -104,7 +104,11 @@
         id: db.uuid(),
         title: parsed.title,
         status: 'inbox',
-        priority: parsed.priority,
+        // Phase 9 (Settings): falls back to `Console.taskDefaultPriority` (a boot-time cache of
+        // the `default_task_priority` preference, kept live by Settings' own module) when the
+        // capture text didn't specify one — synchronous, since captureTask() itself is not
+        // awaited from a preference lookup mid-keystroke. Unset by default (null), same as today.
+        priority: parsed.priority || Console.taskDefaultPriority || null,
         context: parsed.context,
         project_id: projectId,
         tags: [],

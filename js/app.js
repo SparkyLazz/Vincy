@@ -144,6 +144,27 @@
     });
   }
 
+  // Phase 9 (Settings): boot-time in-memory caches for the 4 preferences that get wired into real
+  // consumption (phase_9_settings.md Decision #3) — same pattern as `Console.analyticsRange`
+  // above. Must resolve BEFORE `Console.router.init()` runs, since `Console.defaultLandingView`
+  // has to be set synchronously by the time router.js decides the initial hash. Settings' own
+  // module updates these same globals live (in addition to persisting) when changed, so a change
+  // takes effect immediately without needing a reload.
+  function restoreSettingsDefaults() {
+    return Promise.all([
+      Console.db.getPref('default_landing_view', 'today'),
+      Console.db.getPref('default_task_priority', null),
+      Console.db.getPref('default_focus_mode', null),
+      Console.db.getPref('default_focus_duration_min', null),
+      Console.db.getPref('insights_detectors', null)
+    ]).then(function (r) {
+      Console.defaultLandingView = r[0];
+      Console.taskDefaultPriority = r[1];
+      Console.focusDefaults = (r[2] || r[3]) ? { mode: r[2] || 'pomodoro', targetMin: r[3] || 25 } : null;
+      Console.insightsDetectorPrefs = r[4];
+    });
+  }
+
   // Phase 6: real cross-screen floating timer. This duplicates a few small helpers
   // (pad2/msToClock/computeElapsedMs) and the pause/end mutation logic that also live in
   // js/modules/focus/index.js — deliberate, same call as the TYPES/TYPE_LABEL duplication
@@ -245,6 +266,7 @@
 
     Console.db.open()
       .then(function () { return Console.theme.init(); })
+      .then(function () { return restoreSettingsDefaults(); })
       .then(function () {
         Console.router.init(contentEl);
         Console.palette.init();

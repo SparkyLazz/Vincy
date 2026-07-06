@@ -16,6 +16,51 @@
        content — but don't assume Schedule/Finance will use it without checking their prototypes
        when their phases start. */
 
+  /* ============ MOTION SYSTEM (FX/animation polish pass) ============
+     Added after every screen was functionally complete (Phases 1-9), as its own dedicated pass —
+     not a new feature, a finishing touch. Subtle/professional per the user's own call: short
+     durations, no bounce/overshoot, entrance-only (no exit animations — see below), route/view
+     switches stay instant (only in-page elements animate). Zero JS changes anywhere in this pass:
+     every animation here either (a) autoplays because the element is freshly inserted via
+     `innerHTML` (true for every module's list/card rows and for the 4 modules' hand-rolled modal
+     overlays — see js/modules/*/index.js's renderModal() pattern), or (b) autoplays via the
+     `:not([hidden])` trick below, which works because [hidden] resolves to `display:none` — going
+     from no box to a box is exactly the trigger CSS animations need to (re)start, so toggling the
+     existing `hidden` attribute (already the app's one and only show/hide convention, see
+     Console_Workflow.md) is enough. This is also why there's no matching exit/close animation:
+     doing that smoothly would require delaying the actual DOM removal with a JS timeout in every
+     module's closeModal()/hidden-toggle, which is real logic risk for a pass that's supposed to be
+     zero-risk polish. Snapping closed instead of fading is an intentional trade-off, not an
+     oversight — revisit only if the user asks for it explicitly.
+     Reduced motion: honored globally below, this must stay the first real rule in the cascade so
+     nothing loaded later can out-specificity it. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Shared keyframes — defined once here (base.css loads before components.css) so every
+     component can reference them without redefining. Naming mirrors the existing `pulse`/`shimmer`
+     precedent already in this codebase (one keyframe, many consumers). */
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  /* Movement-free, faster variant of fadeInUp — used specifically on rows/cards that live inside
+     lists with j/k keyboard reselection (Tasks/Schedule/Habits/Finance/Focus all document this
+     shortcut). Those modules re-render the WHOLE list via innerHTML on every selection change, not
+     just on real data changes, so `fadeInUp`'s translateY would replay on every keypress while
+     navigating — fine occasionally, distracting/flickery under rapid j/k. `fadeIn` keeps the "less
+     static" win for genuine list loads/filters without that repeated-navigation cost. */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes popIn { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes checkPop { 0% { transform: scale(0.82); } 55% { transform: scale(1.14); } 100% { transform: scale(1); } }
+  @keyframes barGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
   /* RESET */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; overflow: hidden; overflow: clip; scrollbar-width: none; }
@@ -55,12 +100,19 @@
   .brand-meta { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-top: -2px; }
 
   .nav-group-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; padding: 12px 18px 4px; }
-  .nav-item { display: flex; align-items: center; gap: 11px; padding: 7px 18px; cursor: pointer; color: var(--ink-2); font-size: 13.5px; font-weight: 500; position: relative; }
+  .nav-item { display: flex; align-items: center; gap: 11px; padding: 7px 18px; cursor: pointer; color: var(--ink-2); font-size: 13.5px; font-weight: 500; position: relative; transition: color var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out); }
   .nav-item:hover { color: var(--ink-1); background: var(--line-1); }
   .nav-item.active { color: var(--accent); background: var(--accent-soft); }
-  .nav-item.active::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; }
-  .nav-item svg { width: 15px; height: 15px; stroke-width: 1.7; flex-shrink: 0; }
-  .nav-item .nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700; }
+  /* This pseudo-element only exists in the box tree while `.active` is present — it's created
+     fresh each time the router swaps the active nav item, not toggled on a persistent box — so a
+     `transition` here would never have a prior state to animate from. `animation` autoplays on
+     that fresh insertion instead (same reasoning as this file's header comment on the
+     `:not([hidden])` trick). */
+  .nav-item.active::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; animation: navIndicatorIn var(--dur-base) var(--ease-out); }
+  @keyframes navIndicatorIn { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
+  .nav-item svg { width: 15px; height: 15px; stroke-width: 1.7; flex-shrink: 0; transition: transform var(--dur-base) var(--ease-out); }
+  .nav-item:hover svg { transform: translateX(1px); }
+  .nav-item .nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700; transition: color var(--dur-base) var(--ease-out); }
   .nav-item.active .nav-count { color: var(--accent); }
 
   .sidebar-footer { margin-top: auto; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); border-top: 1px solid var(--line-1); }
@@ -75,7 +127,7 @@
   .topbar-spacer { flex: 1; }
 
   .segmented { display: inline-flex; background: var(--paper-2); border-radius: 8px; padding: 3px; }
-  .segmented button { background: transparent; border: none; padding: 4px 11px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); cursor: pointer; border-radius: 5px; font-weight: 600; }
+  .segmented button { background: transparent; border: none; padding: 4px 11px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); cursor: pointer; border-radius: 5px; font-weight: 600; transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
   .segmented button.active { background: var(--card); color: var(--ink-1); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
 
   /* RANGE FILTER (Phase 7 / Analytics) — the "custom" popover anchored under the segmented
@@ -83,26 +135,44 @@
      its own — `.segmented` keeps its exact Phase 1 appearance. See
      docs/phase_prompts/phase_7_analytics.md Design Decision #3. */
   .range-filter { position: relative; }
-  .range-popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; background: var(--card); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 28px rgba(31,30,27,0.14); padding: 14px; display: flex; flex-direction: column; gap: 10px; width: 200px; }
+  .range-popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; background: var(--card); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 28px rgba(31,30,27,0.14); padding: 14px; display: flex; flex-direction: column; gap: 10px; width: 200px; transform-origin: top right; }
   [data-theme="dark"] .range-popover { box-shadow: 0 10px 28px rgba(0,0,0,0.5); }
   .range-popover[hidden] { display: none; }
+  /* Persistent node, shown/hidden by toggling `hidden` (js/app.js) rather than recreated — the
+     `:not([hidden])` state change from `display:none` to a real box is what (re)triggers the
+     animation each time it opens, no JS changes needed. See base.css's motion-system header note. */
+  .range-popover:not([hidden]) { animation: popIn var(--dur-base) var(--ease-out); }
 
-  .cmd-trigger { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 12px; border: 1px solid var(--line-2); border-radius: 7px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; background: var(--card); min-width: 230px; }
+  .cmd-trigger { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 12px; border: 1px solid var(--line-2); border-radius: 7px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; background: var(--card); min-width: 230px; transition: border-color var(--dur-base) var(--ease-out); }
   .cmd-trigger:hover { border-color: var(--ink-3); }
   .cmd-trigger .kbd { background: var(--paper-2); padding: 1px 5px; border-radius: 4px; font-size: 10px; color: var(--ink-2); font-weight: 700; margin-left: auto; }
   .cmd-trigger svg { width: 13px; height: 13px; stroke-width: 1.7; color: var(--ink-3); }
 
   .theme-toggle { display: inline-flex; gap: 1px; background: var(--paper-2); padding: 3px; border-radius: 999px; }
-  .theme-toggle button { background: transparent; border: none; padding: 5px 11px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); cursor: pointer; border-radius: 999px; font-weight: 700; text-transform: lowercase; letter-spacing: 0.04em; }
+  .theme-toggle button { background: transparent; border: none; padding: 5px 11px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); cursor: pointer; border-radius: 999px; font-weight: 700; text-transform: lowercase; letter-spacing: 0.04em; transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
   .theme-toggle button.active { background: var(--card); color: var(--ink-1); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
 
   /* ============ CONTENT SCROLL ============ */
   .content { flex: 1; overflow-y: auto; padding: 26px 36px 100px; }
   .content-inner { max-width: 1180px; margin: 0 auto; }
 
+  /* VIEW/ROUTE TRANSITION — added on top of this pass per explicit user request (a page-fade on
+     nav clicks, "like a usual website"), overriding this pass's original default of leaving route
+     switches instant. `#app-content` (== `.content-inner`, see index.html) is a PERSISTENT node —
+     router.js swaps its `innerHTML` on every navigation but never replaces the element itself — so
+     unlike every other animation in this file (which autoplay because their element is freshly
+     inserted), a plain `animation` here would only ever play once, on initial page load. router.js's
+     go() now explicitly restarts it after every module swap: remove this class, force a reflow,
+     re-add it. Reuses `fadeInUp` rather than a dedicated keyframe — same subtle motion as
+     everything else in this pass, nothing route-transitions-specific about it. */
+  #app-content.route-fade { animation: fadeInUp var(--dur-base) var(--ease-out); }
+
   /* ============ FLOATING TIMER ============ */
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   .floating-timer { position: fixed; bottom: 22px; right: 22px; background: var(--ink-1); color: var(--paper); border-radius: 14px; padding: 14px 18px; box-shadow: 0 12px 32px rgba(31,30,27,0.16); display: flex; align-items: center; gap: 16px; z-index: 100; }
+  /* Persistent node toggled via `hidden` (js/app.js) when a Focus session starts/ends — same
+     `:not([hidden])` entrance trick as `.range-popover` above. */
+  .floating-timer:not([hidden]) { animation: fadeInUp var(--dur-slow) var(--ease-out); }
   [data-theme="dark"] .floating-timer { background: var(--card); border: 1px solid var(--line-2); box-shadow: 0 12px 32px rgba(0,0,0,0.4); color: var(--ink-1); }
   .floating-timer .ftindicator { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px rgba(232,130,94,0.25); animation: pulse 1.8s infinite; }
   .floating-timer .ftcontent .ftmode { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; font-weight: 700; }
@@ -145,8 +215,9 @@
   .page-head-row .inner { max-width: 1180px; margin: 0 auto; display: flex; align-items: baseline; gap: 16px; }
   .page-sub { font-family: var(--display); font-style: italic; font-size: 14px; color: var(--ink-2); }
   .page-actions { margin-left: auto; display: flex; gap: 8px; }
-  .btn-mini { background: var(--card); border: 1px solid var(--line-2); padding: 6px 12px; border-radius: 7px; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-mini { background: var(--card); border: 1px solid var(--line-2); padding: 6px 12px; border-radius: 7px; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
   .btn-mini:hover { background: var(--paper-2); color: var(--ink-1); }
+  .btn-mini:active { transform: scale(0.96); }
   .btn-mini.primary { background: var(--accent); border-color: var(--accent); color: white; }
   .btn-mini.primary:hover { background: var(--accent-dk); }
   .btn-mini svg { width: 12px; height: 12px; stroke-width: 2; }
@@ -154,10 +225,10 @@
   /* ============ VIEW TABS ROW (Tasks/Schedule/Habits) ============ */
   .view-tabs-row { padding: 18px 36px 0; }
   .view-tabs-inner { max-width: 1180px; margin: 0 auto; border-bottom: 1px solid var(--line-1); display: flex; gap: 0; overflow-x: auto; }
-  .vtab { padding: 10px 14px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 700; letter-spacing: 0.04em; text-transform: lowercase; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+  .vtab { padding: 10px 14px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 700; letter-spacing: 0.04em; text-transform: lowercase; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; transition: color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out); }
   .vtab:hover { color: var(--ink-2); }
   .vtab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .vtab .vcount { font-size: 10px; color: var(--ink-3); background: var(--paper-2); padding: 1px 6px; border-radius: 999px; font-weight: 700; }
+  .vtab .vcount { font-size: 10px; color: var(--ink-3); background: var(--paper-2); padding: 1px 6px; border-radius: 999px; font-weight: 700; transition: color var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out); }
   .vtab.active .vcount { color: var(--accent); background: var(--accent-soft); }
   .vtab-spacer { flex: 1; }
   .vtab-extra { display: inline-flex; align-items: center; gap: 8px; padding: 8px 0; }
@@ -165,7 +236,9 @@
   /* ============ METRICS ROW (Tasks/Schedule/Habits) ============ */
   .metrics-row { padding: 18px 36px 0; }
   .metrics-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-  .metric { background: var(--card); border: 1px solid var(--line-1); border-radius: 11px; padding: 12px 16px; }
+  .metric { background: var(--card); border: 1px solid var(--line-1); border-radius: 11px; padding: 12px 16px; transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
+  .metric:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(31,30,27,0.08); }
+  [data-theme="dark"] .metric:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
   .metric .mnum { font-family: var(--body); font-weight: 800; font-size: 24px; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
   .metric .mnum .munit { font-size: 13px; color: var(--ink-2); font-weight: 500; margin-left: 2px; }
   .metric .mlbl { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-top: 6px; display: flex; align-items: center; justify-content: space-between; }

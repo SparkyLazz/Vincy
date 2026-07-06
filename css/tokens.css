@@ -42,6 +42,16 @@
     --display: 'Source Serif 4', Georgia, serif;
     --body: 'Inter', -apple-system, sans-serif;
     --mono: 'JetBrains Mono', monospace;
+
+    /* MOTION — added for the FX/animation polish pass (post-Phase-9). Subtle/professional per the
+       user's own call: quick, understated easing, no bounce/overshoot. Not theme-dependent (same
+       in light + dark), lives here so both base.css and components.css can reference one source
+       of truth instead of hand-rolling durations/easings per rule. */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --dur-fast: 0.12s;
+    --dur-base: 0.2s;
+    --dur-slow: 0.32s;
   }
 
   [data-theme="dark"] {
