@@ -164,11 +164,12 @@
     return (
       '<div class="qc-card">' +
         '<div class="card-head"><span class="card-title">Quick capture</span><span class="card-sub">inbox · ' + inboxDepth + ' unprocessed</span></div>' +
-        '<textarea class="qc-input" id="qc-input" placeholder="Capture anything…&#10;&#10;Try: call vendor tomorrow !high @phone #client-a"></textarea>' +
+        '<textarea class="qc-input" id="qc-input" placeholder="Capture anything…&#10;&#10;Try: call vendor tomorrow !high @phone #client-a +errand"></textarea>' +
         '<div class="qc-syntax">' +
           '<span class="chip"><span class="acc">!high</span> <span class="acc">!med</span> <span class="acc">!low</span> priority</span>' +
           '<span class="chip"><span class="b">@email</span> <span class="b">@phone</span> context</span>' +
           '<span class="chip"><span class="p">#project</span> link</span>' +
+          '<span class="chip"><span class="acc">+tag</span> habit link</span>' +
         '</div>' +
       '</div>'
     );

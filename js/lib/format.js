@@ -26,14 +26,19 @@
 
   function timeHM(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
 
-  // Monday-start week containing `d`, returned as 7 Date objects
+  // Week containing `d`, returned as 7 Date objects. Start day follows the `week_start`
+  // preference (Settings › Preferences), read via the Console.weekStart boot-time global that
+  // app.js loads and Settings keeps live — every weekOf() caller (Schedule's grid, Today/Focus/
+  // Insights' weekly ranges) follows the preference through this one function instead of each
+  // re-deriving it. Defaults to Monday, the app's original behavior.
   function weekOf(d) {
-    var day = d.getDay(); // 0=sun..6=sat
-    var mondayOffset = day === 0 ? -6 : 1 - day;
-    var monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() + mondayOffset);
+    var startDow = Console.weekStart === 'sun' ? 0 : 1; // 0=sun..6=sat
+    var day = d.getDay();
+    var offset = -((day - startDow + 7) % 7);
+    var first = new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset);
     var out = [];
     for (var i = 0; i < 7; i++) {
-      out.push(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i));
+      out.push(new Date(first.getFullYear(), first.getMonth(), first.getDate() + i));
     }
     return out;
   }

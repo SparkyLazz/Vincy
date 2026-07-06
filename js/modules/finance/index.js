@@ -164,7 +164,9 @@
       return (n / rate).toFixed(1) + 'h';
     }
     var sign = opts.signed ? (n >= 0 ? '+' : '−') : (n < 0 ? '−' : '');
-    return sign + '$' + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: opts.cents ? 2 : 0, maximumFractionDigits: opts.cents ? 2 : 0 });
+    var symbol = (Console.baseCurrency === 'USD' || Console.baseCurrency === 'CAD' || Console.baseCurrency === 'AUD' || Console.baseCurrency === 'SGD') ? '$' : (Console.baseCurrency === 'EUR' ? '€' : (Console.baseCurrency === 'GBP' ? '£' : (Console.baseCurrency === 'JPY' ? '¥' : (Console.baseCurrency === 'MYR' ? 'RM' : ''))));
+    if (!symbol) return sign + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: opts.cents ? 2 : 0, maximumFractionDigits: opts.cents ? 2 : 0 }) + ' ' + Console.baseCurrency;
+    return sign + symbol + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: opts.cents ? 2 : 0, maximumFractionDigits: opts.cents ? 2 : 0 });
   }
 
   // ---------------------------------------------------------------- metrics
@@ -191,7 +193,7 @@
     return (
       '<div class="page-head">' +
         '<h1 class="page-title">Finance &mdash; <span class="em">' + escapeHtml(periodLabel(period).split(' ')[0]) + '</span></h1>' +
-        '<span class="page-sub">USD · ' + totalHours.toFixed(0) + ' hours logged this month' + (hourlyMode ? ' · showing hourly-equivalent' : '') + '</span>' +
+        '<span class="page-sub">' + (Console.baseCurrency || 'USD') + ' · ' + totalHours.toFixed(0) + ' hours logged this month' + (hourlyMode ? ' · showing hourly-equivalent' : '') + '</span>' +
         '<div class="page-actions">' +
           '<div class="month-nav"><button data-act="month-prev">‹</button><button class="this-btn" data-act="month-this">' + (period === todayPeriod() ? 'this month' : escapeHtml(periodLabel(period))) + '</button><button data-act="month-next">›</button></div>' +
           '<button class="btn-mini' + (hourlyMode ? ' primary' : '') + '" id="btn-hourly-toggle">Hourly</button>' +
@@ -229,7 +231,7 @@
         '<div class="metric"><div class="mnum pos">' + money(m.income, { signed: true }) + '</div><div class="mlbl"><span>income · ' + periodLabel(period).split(' ')[0].toLowerCase() + '</span><span class="mtrend' + (m.incomeTrend < 0 ? ' warn' : '') + '">' + (m.incomeTrend >= 0 ? '▲' : '▼') + ' ' + Math.abs(m.incomeTrend) + '% MoM</span></div></div>' +
         '<div class="metric"><div class="mnum">' + money(m.expenses) + '</div><div class="mlbl"><span>expenses</span><span class="mtrend down">' + m.expensePctOfIncome + '% of income</span></div></div>' +
         '<div class="metric"><div class="mnum ' + (m.net >= 0 ? 'pos' : 'warn') + '">' + money(m.net, { signed: true }) + '</div><div class="mlbl"><span>net · savings rate</span><span class="mtrend">' + m.savingsRate + '%</span></div></div>' +
-        '<div class="metric"><div class="mnum">' + (m.hourlyRate ? '$' + m.hourlyRate.toFixed(2) + '<span class="munit">/hr</span>' : '—') + '</div><div class="mlbl"><span>hourly equivalent</span><span class="mtrend">' + m.focusHours.toFixed(0) + 'h logged</span></div></div>' +
+        '<div class="metric"><div class="mnum">' + (m.hourlyRate ? (money(m.hourlyRate).replace(/\d|\.|,/g, '')) + m.hourlyRate.toFixed(2) + '<span class="munit">/hr</span>' : '—') + '</div><div class="mlbl"><span>hourly equivalent</span><span class="mtrend">' + m.focusHours.toFixed(0) + 'h logged</span></div></div>' +
       '</div>'
     );
   }
@@ -270,7 +272,7 @@
       var remainCls = remain <= 0 ? 'done' : (pct >= 90 ? 'danger' : (pct >= 75 ? 'warn' : ''));
       var remainLbl = isSavings
         ? (remain <= 0 ? 'Full · ' + money(e.allocated) : money(remain) + ' left')
-        : (remain <= 0 ? '$0 left' : money(remain) + ' left');
+        : (remain <= 0 ? money(0) + ' left' : money(remain) + ' left');
       var barCls = isSavings ? 'savings' : (pct >= 90 ? 'danger' : (pct >= 75 ? 'warn' : ''));
       var txnCount = cache.transactions.filter(function (t) { return t.envelope_id === e.id && periodOf(t.date) === e.period; }).length;
       var noteBase = isSavings && cat.goal_total
@@ -279,7 +281,7 @@
       return (
         '<div class="env-card' + (e.id === selectedId ? ' selected' : '') + '" data-id="' + e.id + '">' +
           '<div class="ec-head"><div class="ec-name">' + escapeHtml(cat.name) + '</div><div class="ec-remain ' + remainCls + '">' + remainLbl + '</div></div>' +
-          '<div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>' + Math.round(spent).toLocaleString() + '</span><span class="ec-allocated">/ $' + Math.round(e.allocated || 0).toLocaleString() + (isSavings ? ' this mo' : '') + '</span></div>' +
+          '<div class="ec-amounts"><span class="ec-spent">' + money(Math.round(spent)) + '</span><span class="ec-allocated">/ ' + money(Math.round(e.allocated || 0)) + (isSavings ? ' this mo' : '') + '</span></div>' +
           '<div class="ec-bar' + (barCls ? ' ' + barCls : '') + '"><div class="fill" style="width:' + pct + '%;"></div></div>' +
           '<div class="ec-note">' + escapeHtml(noteBase) + (txnCount && !isSavings ? ' <span class="txn-count">' + txnCount + ' txn' + (txnCount === 1 ? '' : 's') + '</span>' : '') + '</div>' +
         '</div>'
@@ -357,11 +359,11 @@
         '</div>' +
         '<div class="insight-card info">' +
           '<div class="ic-head"><span class="ic-label">◇ Cost per focus hour</span><span class="ic-meta">cross-domain · real-time</span></div>' +
-          '<div class="ic-headline">' + (cph != null ? '<span class="big-num">$' + cph.toFixed(2) + '</span> per focus hour this month.' : 'No focus hours logged yet this month.') + '</div>' +
+          '<div class="ic-headline">' + (cph != null ? '<span class="big-num">' + (money(cph).replace(/\d|\.|,/g, '')) + cph.toFixed(2) + '</span> per focus hour this month.' : 'No focus hours logged yet this month.') + '</div>' +
           '<div class="ic-desc">Fixed expenses divided by hours of deep-work logged.' + (cph == null ? ' Ships real numbers once Focus (Phase 6) writes sessions.' : ' Lower is better.') + '</div>' +
           '<div class="ic-breakdown">' +
             '<div class="bd-item"><div class="bd-lbl">Fixed spend</div><div class="bd-val">' + money(fixed) + '</div><div class="bd-sub">divided across…</div></div>' +
-            '<div class="bd-item"><div class="bd-lbl">Focus hours · ' + periodLabel(period).split(' ')[0].toLowerCase() + '</div><div class="bd-val">' + hrs.toFixed(0) + ' h</div><div class="bd-sub">' + (cph != null ? '= $' + cph.toFixed(2) + ' per hour' : 'no rate yet') + '</div></div>' +
+            '<div class="bd-item"><div class="bd-lbl">Focus hours · ' + periodLabel(period).split(' ')[0].toLowerCase() + '</div><div class="bd-val">' + hrs.toFixed(0) + ' h</div><div class="bd-sub">' + (cph != null ? '= ' + (money(cph).replace(/\d|\.|,/g, '')) + cph.toFixed(2) + ' per hour' : 'no rate yet') + '</div></div>' +
           '</div>' +
         '</div>' +
       '</div>'
@@ -459,7 +461,7 @@
           '<div class="num-mono pos">' + money(income) + '</div>' +
           '<div class="num-mono">' + money(expenses) + '</div>' +
           '<div class="num-mono ' + (net >= 0 ? 'pos' : 'neg') + '">' + money(net, { signed: true }) + '</div>' +
-          '<div class="num-mono">' + (cph != null ? '$' + cph.toFixed(2) + '/hr' : '—') + '</div>' +
+          '<div class="num-mono">' + (cph != null ? (money(cph).replace(/\d|\.|,/g, '')) + cph.toFixed(2) + '/hr' : '—') + '</div>' +
         '</div>'
       );
     }).join('');
@@ -511,7 +513,15 @@
             '<div class="modal-row3">' +
               '<div class="modal-field"><label>Currency (optional, if foreign)</label><input type="text" class="input" id="mf-currency" value="' + escapeHtml(t.currency || '') + '" placeholder="EUR"></div>' +
               '<div class="modal-field"><label>FX rate</label><input type="number" step="0.0001" class="input" id="mf-fxrate" value="' + (t.fx_rate != null ? t.fx_rate : '') + '" placeholder="1.083"></div>' +
-              '<div class="modal-field"><label>Original amount</label><input type="number" step="0.01" class="input" id="mf-origamount" value="' + (t.original_amount != null ? t.original_amount : '') + '" placeholder="129.30"></div>' +
+              '<div class="modal-field"><label>Original amount (same sign as Amount)</label><input type="number" step="0.01" class="input" id="mf-origamount" value="' + (t.original_amount != null ? t.original_amount : '') + '" placeholder="129.30"></div>' +
+            '</div>' +
+            // Offline by default (no other network call exists in this app) — this button is the
+            // one opt-in exception: a best-effort live lookup that only fires on click, fills FX
+            // rate + recomputes Amount, and remembers the rate in Settings › Currencies for next
+            // time. If it's offline or the request fails, everything else in the form still works.
+            '<div class="modal-fx-row">' +
+              '<button type="button" class="btn sm secondary" id="btn-fetch-fx" data-act="fetch-fx-rate" title="Online lookup — needs a connection; everything else in Console works offline">Fetch live rate</button>' +
+              '<span class="hint" id="fx-fetch-status"></span>' +
             '</div>' +
             '<label class="modal-exc-picker"><input type="checkbox" id="mf-recurring"' + (t.recurring ? ' checked' : '') + '> This is a recurring subscription</label>' +
             '<div class="modal-field"><label>Notes</label><textarea class="input notes-area" id="mf-notes">' + escapeHtml(t.notes || '') + '</textarea></div>' +
@@ -595,7 +605,95 @@
       '</div>' +
       renderModal();
 
-    if (modalMode === 'txn') { var el = document.getElementById('mf-title'); if (el) el.focus(); }
+    if (modalMode === 'txn') {
+      var el = document.getElementById('mf-title'); if (el) el.focus();
+      wireTxnFxInputs();
+    }
+  }
+
+  // ---------------------------------------------------------------- FX rate helpers (transaction modal)
+
+  // Recomputes home-currency Amount from Original amount × FX rate whenever either changes — the
+  // user only has to know ONE of the three reliably (usually Original amount, what the receipt
+  // says), not all three. Only fires when both inputs are present, so typing Amount directly still
+  // works untouched for ordinary transactions in the base currency.
+  function recomputeTxnAmount() {
+    var currencyInput = document.getElementById('mf-currency');
+    var fxRateInput = document.getElementById('mf-fxrate');
+    var origAmountInput = document.getElementById('mf-origamount');
+    var amountInput = document.getElementById('mf-amount');
+    if (!currencyInput || !fxRateInput || !origAmountInput || !amountInput) return;
+    if (!currencyInput.value.trim() || fxRateInput.value === '' || origAmountInput.value === '') return;
+    var rate = +fxRateInput.value, orig = +origAmountInput.value;
+    if (isNaN(rate) || isNaN(orig)) return;
+    amountInput.value = (orig * rate).toFixed(2);
+  }
+
+  function wireTxnFxInputs() {
+    var currencyInput = document.getElementById('mf-currency');
+    var fxRateInput = document.getElementById('mf-fxrate');
+    var origAmountInput = document.getElementById('mf-origamount');
+    if (currencyInput) {
+      currencyInput.addEventListener('input', function () {
+        var code = currencyInput.value.trim().toUpperCase();
+        var known = Console.fxRates && Console.fxRates[code];
+        // Only prefill an empty rate — never stomp one the user (or a live fetch) already set.
+        if (known && fxRateInput && !fxRateInput.value) {
+          fxRateInput.value = known.rate;
+          recomputeTxnAmount();
+        }
+      });
+    }
+    if (fxRateInput) fxRateInput.addEventListener('input', recomputeTxnAmount);
+    if (origAmountInput) origAmountInput.addEventListener('input', recomputeTxnAmount);
+  }
+
+  // Best-effort, opt-in online lookup (frankfurter.dev — free, no key, ECB-sourced) — the one
+  // network call in this whole app. Fires only on click, degrades to a plain status message if
+  // offline or the request fails, and never blocks saving the transaction. On success it also
+  // writes the rate back to the `fx_rates` preference (Settings › Currencies), so it's remembered
+  // next time without needing another fetch.
+  // NOTE: the API moved from frankfurter.app (unversioned /latest) to frankfurter.dev/v1 — the old
+  // host now just 301s here. Hit this host directly so a redirect isn't a second point of failure.
+  function fetchLiveFxRate() {
+    var currencyInput = document.getElementById('mf-currency');
+    var statusEl = document.getElementById('fx-fetch-status');
+    var btn = document.getElementById('btn-fetch-fx');
+    var code = currencyInput ? currencyInput.value.trim().toUpperCase() : '';
+
+    if (statusEl) statusEl.textContent = '';
+    var base = Console.baseCurrency || 'USD';
+    if (!/^[A-Z]{3}$/.test(code)) { if (statusEl) statusEl.textContent = 'Enter a 3-letter currency code first (e.g. EUR).'; return; }
+    if (code === base) { if (statusEl) statusEl.textContent = base + ' is the base currency — no rate needed.'; return; }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Fetching…'; }
+
+    var controller = window.AbortController ? new AbortController() : null;
+    var timeoutId = controller ? setTimeout(function () { controller.abort(); }, 6000) : null;
+
+    function finish(message) {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (btn) { btn.disabled = false; btn.textContent = 'Fetch live rate'; }
+      if (statusEl) statusEl.textContent = message;
+    }
+
+    fetch('https://api.frankfurter.dev/v1/latest?from=' + code + '&to=' + base, controller ? { signal: controller.signal } : {})
+      .then(function (res) { if (!res.ok) throw new Error('bad response: ' + res.status); return res.json(); })
+      .then(function (data) {
+        var rate = data && data.rates && data.rates[base];
+        if (!rate) throw new Error('no rate in response');
+        var fxRateInput = document.getElementById('mf-fxrate');
+        if (fxRateInput) fxRateInput.value = rate;
+        recomputeTxnAmount();
+        Console.fxRates = Console.fxRates || {};
+        Console.fxRates[code] = { rate: rate, updated_at: new Date().toISOString() };
+        db.setPref('fx_rates', Console.fxRates);
+        finish('Fetched 1 ' + code + ' = ' + rate + ' ' + base + ' just now — saved for next time.');
+      })
+      .catch(function (err) {
+        console.error('[Finance] live FX fetch failed:', err); // logged, not just swallowed — so a real bug here is diagnosable, not indistinguishable from "just offline"
+        finish('Couldn’t fetch a live rate — check your connection, or enter one manually.');
+      });
   }
 
   // ---------------------------------------------------------------- modal actions
@@ -668,8 +766,17 @@
   function deleteModalTxn() {
     if (!modalTxn || modalTxn._isNew) return;
     var id = modalTxn.id;
+    var toDelete = findTxn(id);
     modalMode = null; modalTxn = null;
-    db.remove('transactions', id).then(function () { if (selectedId === id) selectedId = null; refreshAndRender(); });
+    db.remove('transactions', id).then(function () {
+      if (selectedId === id) selectedId = null;
+      refreshAndRender();
+      Console.toast('Transaction deleted', {
+        undo: function () {
+          db.put('transactions', toDelete).then(refreshAndRender);
+        }
+      });
+    });
   }
 
   function saveEnvelopeModal() {
@@ -709,11 +816,26 @@
   function deleteModalEnvelope() {
     if (!modalEnvelope || modalEnvelope._isNew) return;
     var id = modalEnvelope.id;
+    var toDelete = findEnvelope(id);
     modalMode = null; modalEnvelope = null;
     var orphaned = cache.transactions.filter(function (t) { return t.envelope_id === id; });
+    var originalOrphaned = orphaned.map(function (t) { return Object.assign({}, t); });
+
     Promise.all(orphaned.map(function (t) { t.envelope_id = null; return db.put('transactions', t); }))
       .then(function () { return db.remove('envelopes', id); })
-      .then(function () { if (selectedId === id) selectedId = null; refreshAndRender(); });
+      .then(function () {
+        if (selectedId === id) selectedId = null;
+        refreshAndRender();
+        Console.toast('Envelope deleted', {
+          undo: function () {
+            db.put('envelopes', toDelete)
+              .then(function () {
+                return Promise.all(originalOrphaned.map(function (t) { return db.put('transactions', t); }));
+              })
+              .then(refreshAndRender);
+          }
+        });
+      });
   }
 
   function saveFundModal() {
@@ -756,6 +878,7 @@
     if (logUse) { logSubscriptionUse(logUse.dataset.id); return; }
 
     if (e.target.closest('[data-act="modal-cancel"]')) { closeModal(); return; }
+    if (e.target.closest('[data-act="fetch-fx-rate"]')) { fetchLiveFxRate(); return; }
     if (e.target.closest('[data-act="modal-save-txn"]')) { saveTxnModal(); return; }
     if (e.target.closest('[data-act="modal-delete-txn"]')) { deleteModalTxn(); return; }
     if (e.target.closest('[data-act="modal-save-envelope"]')) { saveEnvelopeModal(); return; }

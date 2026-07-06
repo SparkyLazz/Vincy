@@ -477,15 +477,24 @@
     };
     db.put('focus_sessions', session).then(function () {
       setStrictBodyClass(draft.strict);
+      notifySessionChanged();
       refreshAndRender();
     });
+  }
+
+  // Cross-module signal: app.js's floating timer listens for this instead of waiting on its 5s
+  // poll (which left a visible dead gap after starting a session and switching screens) — same
+  // CustomEvent pattern `analytics-range-changed` established in Phase 7. Fired only after the
+  // session write settles, so a listener re-reading IndexedDB always sees the new state.
+  function notifySessionChanged() {
+    document.dispatchEvent(new CustomEvent('focus-session-changed'));
   }
 
   function pauseSession() {
     var active = findActiveSession();
     if (!active || active.paused_at) return;
     active.paused_at = new Date().toISOString();
-    db.put('focus_sessions', active).then(refreshAndRender);
+    db.put('focus_sessions', active).then(function () { notifySessionChanged(); refreshAndRender(); });
   }
 
   function resumeSession() {
@@ -494,7 +503,7 @@
     var now = Date.now();
     active.paused_ms = (active.paused_ms || 0) + (now - new Date(active.paused_at).getTime());
     active.paused_at = null;
-    db.put('focus_sessions', active).then(refreshAndRender);
+    db.put('focus_sessions', active).then(function () { notifySessionChanged(); refreshAndRender(); });
   }
 
   function endSession() {
@@ -509,6 +518,7 @@
     active.duration_min = durationMin;
     db.put('focus_sessions', active).then(function () {
       setStrictBodyClass(false);
+      notifySessionChanged();
       refreshAndRender();
     });
   }
@@ -541,7 +551,7 @@
     existing.habit_id = kind === 'habit' ? triggerId : null;
     existing.trigger_label = label;
     existing.notes = notesEl.value;
-    db.put('focus_sessions', existing).then(function () { modalMode = null; modalSession = null; refreshAndRender(); });
+    db.put('focus_sessions', existing).then(function () { modalMode = null; modalSession = null; notifySessionChanged(); refreshAndRender(); });
   }
 
   function deleteEditSession() {
@@ -552,6 +562,7 @@
     db.remove('focus_sessions', id).then(function () {
       if (selectedId === id) selectedId = null;
       if (wasActive) setStrictBodyClass(false);
+      notifySessionChanged();
       refreshAndRender();
     });
   }

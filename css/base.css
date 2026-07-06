@@ -170,6 +170,10 @@
   /* ============ FLOATING TIMER ============ */
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   .floating-timer { position: fixed; bottom: 22px; right: 22px; background: var(--ink-1); color: var(--paper); border-radius: 14px; padding: 14px 18px; box-shadow: 0 12px 32px rgba(31,30,27,0.16); display: flex; align-items: center; gap: 16px; z-index: 100; }
+  /* The `display: flex` above out-specifies the UA stylesheet's `[hidden] { display: none }`,
+     so without this rule the timer renders 00:00 on every screen forever even though app.js
+     correctly sets `hidden` — same explicit re-hide `.range-popover`/`.palette-overlay` carry. */
+  .floating-timer[hidden] { display: none; }
   /* Persistent node toggled via `hidden` (js/app.js) when a Focus session starts/ends — same
      `:not([hidden])` entrance trick as `.range-popover` above. */
   .floating-timer:not([hidden]) { animation: fadeInUp var(--dur-slow) var(--ease-out); }

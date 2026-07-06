@@ -437,7 +437,11 @@
   function render() {
     var todayISO = fmt.todayISO();
     var allActive = cache.insights.slice().sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; });
-    var visible = allActive.filter(function (r) { return !sessionDismissed[r.id] && !sessionSnoozed[r.id]; });
+    var visible = allActive.filter(function (r) {
+      if (r.dismissed_at) return false;
+      if (r.snoozed_until && r.snoozed_until >= todayISO) return false;
+      return true;
+    });
     var hiddenCount = allActive.length - visible.length;
 
     // Mark visible rows as read (persisted "seen the feed" flag — drives the sidebar nav badge).
@@ -462,7 +466,7 @@
       : emptyStateHtml();
 
     var footer = hiddenCount > 0
-      ? '<div class="ins-dismissed-footer"><span class="ins-dismissed-text">' + hiddenCount + ' dismissed or snoozed this session — nothing is deleted, they\'ll resurface if the condition recurs.</span><button class="ins-restore-btn" data-act="restore-all">Restore all</button></div>'
+      ? '<div class="ins-dismissed-footer"><span class="ins-dismissed-text">' + hiddenCount + ' dismissed or snoozed — they\'ll resurface if the condition recurs or the snooze expires.</span><button class="ins-restore-btn" data-act="restore-all">Restore all</button></div>'
       : '';
 
     container.innerHTML = head + body + footer;
@@ -474,9 +478,31 @@
     var btn = e.target.closest('[data-act]');
     if (!btn) return;
     var act = btn.dataset.act;
-    if (act === 'dismiss') { sessionDismissed[btn.dataset.id] = true; render(); }
-    else if (act === 'snooze') { sessionSnoozed[btn.dataset.id] = true; render(); }
-    else if (act === 'restore-all') { sessionDismissed = {}; sessionSnoozed = {}; render(); }
+    var id = btn.dataset.id;
+    var todayISO = fmt.todayISO();
+
+    if (act === 'dismiss') {
+      var row = cache.insights.find(function (r) { return r.id === id; });
+      if (row) {
+        row.dismissed_at = new Date().toISOString();
+        db.put('insights', row).then(render);
+      }
+    }
+    else if (act === 'snooze') {
+      var row = cache.insights.find(function (r) { return r.id === id; });
+      if (row) {
+        row.snoozed_until = fmt.addDaysISO(todayISO, 1);
+        db.put('insights', row).then(render);
+      }
+    }
+    else if (act === 'restore-all') {
+      var writes = cache.insights.map(function (row) {
+        row.dismissed_at = null;
+        row.snoozed_until = null;
+        return db.put('insights', row);
+      });
+      Promise.all(writes).then(refreshAndRender);
+    }
   }
 
   // ---------------------------------------------------------------- lifecycle

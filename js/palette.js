@@ -26,22 +26,62 @@
 
   var overlay, input, results;
   var activeIndex = 0;
+  var entityCache = { tasks: [], habits: [], events: [], projects: [] };
 
-  function allItems() { return NAV_ITEMS.concat(ACTIONS); }
+  function loadEntities() {
+    return Promise.all([
+      Console.db.getAll('tasks'),
+      Console.db.getAll('habits'),
+      Console.db.getAll('events'),
+      Console.db.getAll('projects')
+    ]).then(function (r) {
+      entityCache.tasks = r[0];
+      entityCache.habits = r[1];
+      entityCache.events = r[2];
+      entityCache.projects = r[3];
+    });
+  }
+
+  function allItems(q) {
+    var base = NAV_ITEMS.concat(ACTIONS);
+    if (!q) return base;
+
+    var entities = [];
+    entityCache.tasks.filter(function (t) { return t.status !== 'done' && t.title.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 5).forEach(function (t) {
+      entities.push({ group: 'Tasks', label: t.title, route: 'tasks', id: t.id });
+    });
+    entityCache.habits.filter(function (h) { return h.name.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 3).forEach(function (h) {
+      entities.push({ group: 'Habits', label: h.name, route: 'habits', id: h.id });
+    });
+    entityCache.events.filter(function (e) { return e.title.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 3).forEach(function (e) {
+      entities.push({ group: 'Events', label: e.title, route: 'schedule', id: e.id });
+    });
+    entityCache.projects.filter(function (p) { return !p.archived_at && p.name.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 3).forEach(function (p) {
+      entities.push({ group: 'Projects', label: p.name, route: 'tasks', id: p.id });
+    });
+
+    return base.concat(entities);
+  }
 
   function matches(item, q) {
-    if (!q) return true;
+    if (!q) return item.group !== 'Tasks' && item.group !== 'Habits' && item.group !== 'Events' && item.group !== 'Projects';
     return item.label.toLowerCase().indexOf(q.toLowerCase()) !== -1;
   }
 
   function runItem(item) {
-    if (item.route) Console.router.navigate(item.route);
+    if (item.id) {
+      // jump to the module; module should ideally handle selecting item.id if it's currently loaded
+      // but jumping to the view is the baseline win.
+      Console.router.navigate(item.route);
+    } else if (item.route) {
+      Console.router.navigate(item.route);
+    }
     else if (item.run) item.run();
     close();
   }
 
   function renderResults(q) {
-    var items = allItems().filter(function (i) { return matches(i, q); });
+    var items = allItems(q).filter(function (i) { return matches(i, q); });
     activeIndex = 0;
 
     if (!items.length) {
@@ -87,8 +127,10 @@
   function open() {
     overlay.hidden = false;
     input.value = '';
-    renderResults('');
-    input.focus();
+    loadEntities().then(function () {
+      renderResults('');
+      input.focus();
+    });
   }
 
   function close() {

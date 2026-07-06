@@ -24,11 +24,13 @@
   //   priority  — !low / !med / !high
   //   context   — one or more @word tokens
   //   project   — the first #word token (name only; caller decides whether to create it)
+  //   tags      — one or more +word tokens (2026-07-06 features pass; `#` was already taken by
+  //               project, and tags being uncapturable was the root of the habit-link-reads-0 bug)
   //   title     — remaining text with the above tokens stripped
   function parseCapture(raw) {
     var fmt = Console.lib.format;
     var text = raw;
-    var result = { title: '', due_date: null, priority: null, context: [], projectName: null };
+    var result = { title: '', due_date: null, priority: null, context: [], projectName: null, tags: [] };
 
     var isoMatch = text.match(/\b(\d{4}-\d{2}-\d{2})\b/);
     if (isoMatch) {
@@ -68,6 +70,15 @@
     if (projMatch) {
       result.projectName = projMatch[0].slice(1);
       text = text.replace(/#[\w-]+/g, '');
+    }
+
+    var tagMatches = text.match(/\+[\w-]+/g);
+    if (tagMatches) {
+      tagMatches.forEach(function (t) {
+        var tag = Console.lib.normalizeTag(t.slice(1));
+        if (tag && !result.tags.some(function (x) { return Console.lib.sameTag(x, tag); })) result.tags.push(tag);
+      });
+      text = text.replace(/\+[\w-]+/g, '');
     }
 
     result.title = text.replace(/\s+/g, ' ').trim();
@@ -111,7 +122,7 @@
         priority: parsed.priority || Console.taskDefaultPriority || null,
         context: parsed.context,
         project_id: projectId,
-        tags: [],
+        tags: parsed.tags,
         due_date: parsed.due_date,
         due_time: null,
         est_minutes: null,
@@ -125,6 +136,13 @@
     });
   }
 
+  // Tag helpers (normalizeTag/sameTag/collectTags) live in js/lib/tags.js — the tag concept
+  // spans tasks AND habits, so it gets its own lib rather than hiding inside the capture parser.
+
   Console.lib.parseCapture = parseCapture;
   Console.lib.captureTask = captureTask;
+  // Exposed for the Tasks module's "New task" form modal — same case-insensitive dedupe as quick
+  // capture's #project token, so picking "+ new project" there can't fork off a duplicate of one
+  // that already exists.
+  Console.lib.findOrCreateProject = findOrCreateProject;
 })();

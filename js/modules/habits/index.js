@@ -37,7 +37,7 @@
   var modalHabit = null; // working copy while the New/Edit habit modal is open
   var modalLog = null;   // working copy while the log modal is open — { habit_id, date, state, value, note }
 
-  var cache = { habits: [], habitLogs: [], tasks: [], focusSessions: [] };
+  var cache = { habits: [], habitLogs: [], tasks: [], focusSessions: [], projects: [] };
 
   // ---------------------------------------------------------------- helpers
 
@@ -73,12 +73,23 @@
   }
 
   // Cross-domain counts (read-only this phase — see phase_4_habits.md item 4/exclusions).
-  // Tasks link by tag (tasks.tags is the only field that can match); Focus sessions link by the
-  // direct habit_id foreign key already defined on the focus_sessions store in db.js (not a tag
-  // match — the schema already models this as a direct relationship, not a fuzzy one).
+  // Tasks link by tag OR by project name; Focus sessions link by the direct habit_id foreign key
+  // already defined on the focus_sessions store in db.js (not a tag match — the schema already
+  // models this as a direct relationship, not a fuzzy one).
+  // Tag matching goes through Console.lib.sameTag (case-insensitive, leading-# stripped) — the
+  // habit's tag and the task's tags are both free-typed text, so "Reading", "#reading" and
+  // "reading " must all count as the same tag or this reads 0 for no visible reason. Project
+  // names count too because quick capture's #word token creates a *project*, not a tag — a user
+  // who typed "read chapter 4 #reading" reasonably expects that task to show up here.
   function taskLinkCount(h) {
     if (!h.tag) return 0;
-    return cache.tasks.filter(function (t) { return t.tags && t.tags.indexOf(h.tag) !== -1; }).length;
+    var sameTag = Console.lib.sameTag;
+    var projIds = cache.projects.filter(function (p) { return sameTag(p.name, h.tag); })
+      .map(function (p) { return p.id; });
+    return cache.tasks.filter(function (t) {
+      if ((t.tags || []).some(function (tag) { return sameTag(tag, h.tag); })) return true;
+      return t.project_id && projIds.indexOf(t.project_id) !== -1;
+    }).length;
   }
   function focusLinkCount(h) {
     return cache.focusSessions.filter(function (s) { return s.habit_id === h.id; }).length;
@@ -269,11 +280,11 @@
     return (
       '<div class="cd-links">' +
         '<div class="cd-link"><div class="cd-icn ' + (h.category_color || 'neutral') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg></div>' +
-          '<div class="cd-info"><div class="cd-title">Focus sessions · linked</div><div class="cd-meta">' + focusCount + ' sessions total · direct link, ships once Focus (Phase 6) writes sessions</div></div>' +
+          '<div class="cd-info"><div class="cd-title">Focus sessions · linked</div><div class="cd-meta">' + focusCount + ' sessions total · started from this habit in Focus</div></div>' +
           '<div class="cd-count ' + (h.category_color || 'neutral') + '">' + focusCount + '</div>' +
         '</div>' +
         '<div class="cd-link"><div class="cd-icn blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m9 12 2 2 4-4"/></svg></div>' +
-          '<div class="cd-info"><div class="cd-title">Tasks · #' + escapeHtml(h.tag) + ' tag</div><div class="cd-meta">' + taskCount + ' tagged tasks</div></div>' +
+          '<div class="cd-info"><div class="cd-title">Tasks · #' + escapeHtml(h.tag) + '</div><div class="cd-meta">' + taskCount + ' linked tasks · tagged #' + escapeHtml(h.tag) + ' or in a project named “' + escapeHtml(h.tag) + '”</div></div>' +
           '<div class="cd-count blue">' + taskCount + '</div>' +
         '</div>' +
       '</div>'
@@ -431,7 +442,7 @@
       return (
         '<div class="cd-link' + (h.id === selectedId ? ' selected' : '') + '" data-id="' + h.id + '">' +
           '<div class="cd-icn ' + (h.category_color || 'neutral') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' +
-          '<div class="cd-info"><div class="cd-title">' + escapeHtml(h.name) + '</div><div class="cd-meta">' + focusCount + ' focus sessions · ' + taskCount + ' tagged tasks</div></div>' +
+          '<div class="cd-info"><div class="cd-title">' + escapeHtml(h.name) + '</div><div class="cd-meta">' + focusCount + ' focus sessions · ' + taskCount + ' linked tasks</div></div>' +
           '<div class="cd-count ' + (h.category_color || 'neutral') + '">' + pct + '%</div>' +
         '</div>'
       );
@@ -640,7 +651,7 @@
       category_label: document.getElementById('mf-category-label').value,
       category_color: document.getElementById('mf-category-color').value,
       target: target,
-      tag: (document.getElementById('mf-tag').value || '').trim() || null,
+      tag: Console.lib.normalizeTag(document.getElementById('mf-tag').value) || null,
       cue: document.getElementById('mf-cue').value,
       craving: document.getElementById('mf-craving').value,
       response: document.getElementById('mf-response').value,
@@ -792,10 +803,12 @@
 
   function refreshAndRender() {
     return Promise.all([
-      db.getAll('habits'), db.getAll('habit_logs'), db.getAll('tasks'), db.getAll('focus_sessions')
+      db.getAll('habits'), db.getAll('habit_logs'), db.getAll('tasks'), db.getAll('focus_sessions'),
+      db.getAll('projects')
     ]).then(function (results) {
       cache.habits = results[0];
       cache.habitLogs = results[1];
+      cache.projects = results[4];
       cache.tasks = results[2];
       cache.focusSessions = results[3];
       render();

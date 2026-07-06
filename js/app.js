@@ -5,6 +5,41 @@
   'use strict';
   window.Console = window.Console || {};
 
+  // Shared undo toast — Console.toast('Task deleted', { undo: restoreFn }). The .toast/.undo CSS
+  // has sat unused in components.css since the design-library extraction; this is the first real
+  // consumer. Undo is one level deep and expires with the toast (6s default) — deliberately a
+  // safety net for slips, not a history system. Deletes across modules route through this instead
+  // of confirm() dialogs (which train reflexive clicking) — see the 2026-07-06 features pass.
+  var toastHost = null;
+  function toast(message, opts) {
+    opts = opts || {};
+    if (!toastHost) {
+      toastHost = document.createElement('div');
+      toastHost.className = 'toast-host';
+      document.body.appendChild(toastHost);
+    }
+    var el = document.createElement('div');
+    el.className = 'toast';
+    var msg = document.createElement('span');
+    msg.textContent = message;
+    el.appendChild(msg);
+    var timer = setTimeout(dismiss, opts.duration || 6000);
+    function dismiss() {
+      clearTimeout(timer);
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }
+    if (opts.undo) {
+      var btn = document.createElement('span');
+      btn.className = 'undo';
+      btn.textContent = 'Undo';
+      btn.addEventListener('click', function () { dismiss(); opts.undo(); });
+      el.appendChild(btn);
+    }
+    toastHost.appendChild(el);
+    while (toastHost.children.length > 3) toastHost.removeChild(toastHost.firstChild); // never stack into a wall
+  }
+  Console.toast = toast;
+
   function refreshNavCounts() {
     var db = Console.db;
     var todayISO = Console.lib.format.todayISO();
@@ -156,12 +191,23 @@
       Console.db.getPref('default_task_priority', null),
       Console.db.getPref('default_focus_mode', null),
       Console.db.getPref('default_focus_duration_min', null),
-      Console.db.getPref('insights_detectors', null)
+      Console.db.getPref('insights_detectors', null),
+      Console.db.getPref('fx_rates', {}),
+      Console.db.getPref('week_start', 'mon'),
+      Console.db.getPref('base_currency', 'USD')
     ]).then(function (r) {
       Console.defaultLandingView = r[0];
       Console.taskDefaultPriority = r[1];
       Console.focusDefaults = (r[2] || r[3]) ? { mode: r[2] || 'pomodoro', targetMin: r[3] || 25 } : null;
       Console.insightsDetectorPrefs = r[4];
+      // { CODE: { rate, updated_at } } — the user's own remembered FX rates, keyed by 3-letter
+      // currency code. Settings' "Currencies" section is the only writer besides Finance's
+      // "Fetch live rate" button; Finance's transaction modal only ever reads this to prefill.
+      Console.fxRates = r[5] || {};
+      // Consumed by format.js's weekOf() (Schedule/Today/Focus/Insights weekly ranges) and
+      // Analytics' heatmap day ordering. Settings keeps it live on change — no reload needed.
+      Console.weekStart = r[6] || 'mon';
+      Console.baseCurrency = r[7] || 'USD';
     });
   }
 
@@ -254,6 +300,9 @@
           active.duration_min = Math.max(0, ((now - new Date(active.start_at).getTime()) - finalPausedMs) / 60000);
         }
         Console.db.put('focus_sessions', active).then(function () {
+          // Same signal the Focus module fires on its own writes — lets a mounted Focus screen
+          // (or any future listener) catch a pause/end made from this widget without polling.
+          document.dispatchEvent(new CustomEvent('focus-session-changed'));
           refreshFloatingTimer();
           refreshNavCounts();
         });
@@ -275,9 +324,14 @@
         restoreAnalyticsRange();
         refreshNavCounts();
         refreshFloatingTimer();
-        // Keep the floating timer's mode/title/pause-label in sync with any change made from
-        // inside the Focus module itself (start/pause/resume/end all happen there) — Focus has no
-        // way to reach into app.js's closures directly, so this polls same as refreshNavCounts.
+        // Instant sync: the Focus module (and this file's own widget controls) dispatch
+        // `focus-session-changed` after every session write, so the widget reacts immediately
+        // instead of waiting out the poll below. The 5s poll stays as a safety net only (e.g. a
+        // second tab writing sessions, where no event fires in this document).
+        document.addEventListener('focus-session-changed', function () {
+          refreshFloatingTimer();
+          refreshNavCounts();
+        });
         setInterval(refreshFloatingTimer, 5000);
       })
       .catch(function (err) {

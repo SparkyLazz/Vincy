@@ -146,6 +146,14 @@
   .chip.context { color: var(--blue); background: var(--blue-soft); border-color: var(--blue-soft); }
   .chip.project { color: var(--plum); background: var(--plum-soft); border-color: var(--plum-soft); }
   .chip.kbd { background: var(--card); border: 1px solid var(--line-2); padding: 1px 6px; color: var(--ink-2); font-family: var(--mono); font-size: 10.5px; border-radius: 4px; box-shadow: 0 1px 0 var(--line-2); }
+  /* TAG PICKER — the New Task modal's multi-select over existing tags. Chip-sized on purpose:
+     .pill-segment (18px pads, uppercase) is for a fixed 3-4 exclusive options and overflows a
+     modal column once the open-ended tag list grows. Active state mirrors .pill-segment
+     button.active's inset-ring treatment so selection reads the same across both controls. */
+  .tag-picker { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+  .tag-picker button { font-family: var(--mono); font-size: 11px; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink-2); cursor: pointer; transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+  .tag-picker button:hover { border-color: var(--ink-3); color: var(--ink-1); }
+  .tag-picker button.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 
   /* CALLOUTS */
   .callout { border-radius: 11px; padding: 16px 20px; border-left: 3px solid; }
@@ -398,10 +406,11 @@
   .empty .empty-title { font-family: var(--display); font-weight: 700; font-size: 16px; color: var(--ink-1); margin-bottom: 4px; }
   .empty .empty-sub { font-style: italic; font-family: var(--display); font-size: 14px; color: var(--ink-2); }
 
-  /* TOAST — CSS exists but no JS creates one anywhere in the app yet (checked: no showToast/
-     createToast in js/, grepped before touching this). Adding the entrance animation now anyway,
-     zero cost/risk since it only fires if something renders a `.toast` — future-proofs it instead
-     of leaving this half-styled if a later phase wires it up. */
+  /* TOAST — wired for real in the 2026-07-06 features pass: Console.toast() (js/app.js) creates
+     these for undo-able deletes across Tasks/Schedule/Finance/Settings. The host sits bottom-center
+     so it never collides with the floating focus timer (bottom-right, z-index 100). */
+  .toast-host { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+  .toast-host .toast { pointer-events: auto; box-shadow: 0 10px 28px rgba(31,30,27,0.22); }
   .toast { background: var(--ink-1); color: var(--paper); padding: 10px 16px; border-radius: 10px; display: inline-flex; align-items: center; gap: 12px; font-size: 13.5px; animation: toastIn var(--dur-slow) var(--ease-out); }
   [data-theme="dark"] .toast { background: var(--card); color: var(--ink-1); border: 1px solid var(--line-2); }
   .toast .undo { color: var(--accent-soft); font-family: var(--mono); font-size: 11.5px; margin-left: 6px; cursor: pointer; font-weight: 700; letter-spacing: 0.04em; }
@@ -579,6 +588,7 @@
   .parsed-chip.pri { color: var(--accent); background: var(--accent-soft); }
   .parsed-chip.ctx { color: var(--blue); background: var(--blue-soft); }
   .parsed-chip.proj { color: var(--plum); background: var(--plum-soft); }
+  .parsed-chip.tag { color: var(--teal); background: var(--teal-soft); }
   /* CONFLICT, resolved: console_tasks_prototype.html renders the "·" separator and the "↵ capture"
      chip with inline style="..." (see prototype line ~395-396). Per visual_contract.md ("contract
      wins over prototype if they disagree") this is the same class of defect as the Quick Capture
@@ -945,6 +955,7 @@
   .modal-field .input { margin-top: auto; }
   .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
   .modal-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: end; }
+  .modal-fx-row { display: flex; align-items: center; gap: 10px; margin-top: -4px; }
   .modal-dow-picker { display: flex; gap: 5px; flex-wrap: wrap; }
   .modal-dow-picker button { width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink-2); font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
   .modal-dow-picker button.active { background: var(--accent); border-color: var(--accent); color: white; }

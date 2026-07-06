@@ -298,7 +298,11 @@
   function renderMonth() {
     var year = anchorDate.getFullYear(), month = anchorDate.getMonth();
     var first = new Date(year, month, 1);
-    var gridStart = new Date(year, month, 1 - first.getDay());
+    // Follows the week_start preference like weekOf() does — before this, the month grid was
+    // hard-coded Sunday-first while the Week view was Monday-first, so the two views disagreed
+    // about which column a given date falls in.
+    var startDow = Console.weekStart === 'sun' ? 0 : 1;
+    var gridStart = new Date(year, month, 1 - ((first.getDay() - startDow + 7) % 7));
     var todayISO = fmt.todayISO();
     var cells = '';
 
@@ -321,7 +325,7 @@
       );
     }
 
-    var dowRow = DOW_ABBR.map(function (a) { return '<div class="mdow">' + a + '</div>'; }).join('');
+    var dowRow = DOW_ABBR.map(function (_, i) { return '<div class="mdow">' + DOW_ABBR[(startDow + i) % 7] + '</div>'; }).join('');
     return (
       '<div class="grid-row"><div class="grid-inner">' +
         '<div class="month-dow-row">' + dowRow + '</div>' +

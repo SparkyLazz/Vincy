@@ -323,7 +323,10 @@
     });
     if (!max) return emptyState('Not enough data yet', 'Needs logged focus sessions in this range.');
 
-    var DOW_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon..Sun, matching prototype's week order
+    // Mon..Sun (the prototype's order) unless the week_start preference says Sunday-first —
+    // same Console.weekStart global format.js's weekOf() reads, so this grid and Schedule's
+    // week view always agree on what the first row/column of a week is.
+    var DOW_ORDER = Console.weekStart === 'sun' ? [0, 1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5, 6, 0];
     var DOW_LABEL = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
 
     var peak = { day: '', hour: 0, mins: 0 };
@@ -337,10 +340,10 @@
     }).join('');
 
     var rows = DOW_ORDER.map(function (dow) {
-      var cells = grid[dow].map(function (mins) {
+      var cells = grid[dow].map(function (mins, h) {
         var alpha = clamp(mins / max, 0, 1);
         var bg = alpha < 0.04 ? 'var(--paper-2)' : 'rgba(201,100,66,' + (0.08 + alpha * 0.85).toFixed(2) + ')';
-        return '<div class="av-heatmap-cell" style="background:' + bg + '" title="' + DOW_LABEL[dow] + ' ' + hourLabel(0) + ' · ' + Math.round(mins) + 'm"></div>';
+        return '<div class="av-heatmap-cell" style="background:' + bg + '" title="' + DOW_LABEL[dow] + ' ' + hourLabel(h) + ' · ' + Math.round(mins) + 'm"></div>';
       }).join('');
       return '<div class="av-heatmap-day">' + DOW_LABEL[dow] + '</div>' + cells;
     }).join('');
