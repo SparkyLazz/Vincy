@@ -1,0 +1,19 @@
+# Editor / IDE
+.idea/
+.vscode/
+*.iml
+
+# Claude Code / AI-assistant local state
+.claude/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Just in case a future contributor adds tooling
+node_modules/
+.env

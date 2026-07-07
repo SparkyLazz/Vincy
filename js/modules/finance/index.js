@@ -942,6 +942,26 @@
     if (key === 'i' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); /* stubbed, see brief exclusions */ }
   }
 
+  function consumePendingSelection() {
+    var pending = Console.pendingSelection;
+    if (!pending || pending.route !== 'finance') return;
+    Console.pendingSelection = null;
+
+    if (pending.kind === 'transaction') {
+      var txn = findTxn(pending.id);
+      if (!txn) return;
+      selectedId = txn.id;
+      currentView = 'transactions';
+      currentPeriod = pending.period || periodOf(txn.date) || currentPeriod;
+    } else if (pending.kind === 'envelope') {
+      var env = findEnvelope(pending.id);
+      if (!env) return;
+      selectedId = env.id;
+      currentView = 'envelopes';
+      currentPeriod = env.period || currentPeriod;
+    }
+  }
+
   // ---------------------------------------------------------------- lifecycle
 
   function refreshAndRender() {
@@ -952,6 +972,7 @@
       cache.envelopes = results[1];
       cache.categories = results[2];
       cache.focusSessions = results[3];
+      consumePendingSelection();
       render();
     });
   }

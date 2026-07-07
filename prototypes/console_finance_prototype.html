@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Console — Finance · Overview (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FAF9F5; --paper-2: #F4F2EB; --card: #FFFFFF;
+    --ink-1: #1F1E1B; --ink-2: #57544D; --ink-3: #8B877E; --ink-4: #BAB6AC;
+    --line-1: rgba(31,30,27,0.07); --line-2: rgba(31,30,27,0.14);
+    --accent: #C96442; --accent-dk: #A04E32; --accent-lt: #E5947A; --accent-soft: #F6E5DD; --accent-line: rgba(201,100,66,0.30);
+    --teal: #4A7C5C; --teal-soft: #E1ECE3;
+    --blue: #4A6FA5; --blue-soft: #DEE7F4;
+    --amber: #B5740A; --amber-soft: #F8EBCC;
+    --plum: #7A5C8C; --plum-soft: #EBE0F1;
+    --rose: #B14D6B; --rose-soft: #F4DDE3;
+    --success: #4A7C5C; --warning: #B5740A; --danger: #B14D3F;
+    --display: 'Source Serif 4', Georgia, serif;
+    --body: 'Inter', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  [data-theme="dark"] {
+    --paper: #1A1714; --paper-2: #221E1A; --card: #25201C;
+    --ink-1: #F2EDE3; --ink-2: #B3AC9F; --ink-3: #807A6F; --ink-4: #524C44;
+    --line-1: rgba(242,237,227,0.06); --line-2: rgba(242,237,227,0.14);
+    --accent: #E8825E; --accent-dk: #C96442; --accent-lt: #F4A98F; --accent-soft: rgba(232,130,94,0.14); --accent-line: rgba(232,130,94,0.32);
+    --teal: #6FAE85; --teal-soft: rgba(111,174,133,0.18);
+    --blue: #7A99CD; --blue-soft: rgba(122,153,205,0.18);
+    --amber: #DC9430; --amber-soft: rgba(220,148,48,0.18);
+    --plum: #A488B5; --plum-soft: rgba(164,136,181,0.18);
+    --rose: #D17D95; --rose-soft: rgba(209,125,149,0.18);
+    --success: #6FAE85; --warning: #DC9430; --danger: #D17D70;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--paper); color: var(--ink-1); font-family: var(--body); font-size: 14.5px; line-height: 1.55; -webkit-font-smoothing: antialiased; transition: background 0.2s, color 0.2s; overflow: hidden; }
+
+  .app { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { background: var(--paper-2); border-right: 1px solid var(--line-1); display: flex; flex-direction: column; padding: 18px 0; }
+  .brand { padding: 4px 18px 22px; display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; color: white; font-family: var(--display); font-style: italic; font-weight: 700; font-size: 15px; }
+  .brand-name { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-meta { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-top: -2px; }
+  .nav-group-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; padding: 12px 18px 4px; }
+  .nav-item { display: flex; align-items: center; gap: 11px; padding: 7px 18px; cursor: pointer; color: var(--ink-2); font-size: 13.5px; font-weight: 500; position: relative; }
+  .nav-item:hover { color: var(--ink-1); background: var(--line-1); }
+  .nav-item.active { color: var(--accent); background: var(--accent-soft); }
+  .nav-item.active::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; }
+  .nav-item svg { width: 15px; height: 15px; stroke-width: 1.7; flex-shrink: 0; }
+  .nav-item .nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700; }
+  .nav-item.active .nav-count { color: var(--accent); }
+  .sidebar-footer { margin-top: auto; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); border-top: 1px solid var(--line-1); }
+  .sidebar-footer .ondisk { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px rgba(74,124,92,0.18); }
+
+  /* MAIN */
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 56px; border-bottom: 1px solid var(--line-1); display: flex; align-items: center; padding: 0 26px; gap: 16px; flex-shrink: 0; }
+  .breadcrumb { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); letter-spacing: 0.04em; }
+  .breadcrumb .sep { color: var(--ink-4); margin: 0 7px; }
+  .breadcrumb .here { color: var(--ink-1); font-weight: 700; }
+  .topbar-spacer { flex: 1; }
+  .segmented { display: inline-flex; background: var(--paper-2); border-radius: 8px; padding: 3px; }
+  .segmented button { background: transparent; border: none; padding: 4px 11px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); cursor: pointer; border-radius: 5px; font-weight: 600; }
+  .segmented button.active { background: var(--card); color: var(--ink-1); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .cmd-trigger { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 12px; border: 1px solid var(--line-2); border-radius: 7px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; background: var(--card); min-width: 230px; }
+  .cmd-trigger:hover { border-color: var(--ink-3); }
+  .cmd-trigger .kbd { background: var(--paper-2); padding: 1px 5px; border-radius: 4px; font-size: 10px; color: var(--ink-2); font-weight: 700; margin-left: auto; }
+  .cmd-trigger svg { width: 13px; height: 13px; stroke-width: 1.7; color: var(--ink-3); }
+  .theme-toggle { display: inline-flex; gap: 1px; background: var(--paper-2); padding: 3px; border-radius: 999px; }
+  .theme-toggle button { background: transparent; border: none; padding: 5px 11px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); cursor: pointer; border-radius: 999px; font-weight: 700; text-transform: lowercase; letter-spacing: 0.04em; }
+  .theme-toggle button.active { background: var(--card); color: var(--ink-1); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+  /* CONTENT SCROLL */
+  .content { flex: 1; overflow-y: auto; padding: 22px 36px 100px; }
+  .content-inner { max-width: 1180px; margin: 0 auto; }
+  .content::-webkit-scrollbar { width: 10px; }
+  .content::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 5px; border: 2px solid var(--paper); }
+
+  /* PAGE HEAD */
+  .page-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .page-title { font-family: var(--display); font-weight: 700; font-size: 32px; letter-spacing: -0.02em; line-height: 1; }
+  .page-title .em { color: var(--accent); font-style: italic; font-weight: 400; }
+  .page-sub { font-family: var(--display); font-style: italic; font-size: 14px; color: var(--ink-2); }
+  .page-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .month-nav { display: inline-flex; align-items: center; gap: 4px; background: var(--card); border: 1px solid var(--line-2); border-radius: 7px; padding: 4px; }
+  .month-nav button { width: 24px; height: 24px; border: none; background: transparent; color: var(--ink-2); cursor: pointer; border-radius: 4px; display: grid; place-items: center; font-family: var(--mono); }
+  .month-nav button:hover { background: var(--paper-2); color: var(--ink-1); }
+  .month-nav .this-btn { width: auto; padding: 0 10px; font-family: var(--mono); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .btn-mini { background: var(--card); border: 1px solid var(--line-2); padding: 6px 12px; border-radius: 7px; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-mini:hover { background: var(--paper-2); color: var(--ink-1); }
+  .btn-mini.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn-mini.primary:hover { background: var(--accent-dk); }
+  .btn-mini svg { width: 12px; height: 12px; stroke-width: 2; }
+
+  /* VIEW TABS */
+  .view-tabs { border-bottom: 1px solid var(--line-1); display: flex; gap: 0; margin-bottom: 20px; }
+  .vtab { padding: 10px 14px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 700; letter-spacing: 0.04em; text-transform: lowercase; display: inline-flex; align-items: center; gap: 6px; }
+  .vtab:hover { color: var(--ink-2); }
+  .vtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .vtab .vcount { font-size: 10px; color: var(--ink-3); background: var(--paper-2); padding: 1px 6px; border-radius: 999px; font-weight: 700; }
+  .vtab.active .vcount { color: var(--accent); background: var(--accent-soft); }
+
+  /* METRICS STRIP */
+  .metrics-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .metric { background: var(--card); border: 1px solid var(--line-1); border-radius: 13px; padding: 16px 18px; }
+  .metric .mnum { font-family: var(--body); font-weight: 800; font-size: 28px; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink-1); }
+  .metric .mnum.pos { color: var(--teal); }
+  .metric .mnum.neg { color: var(--ink-1); }
+  .metric .mnum.warn { color: var(--amber); }
+  .metric .mnum .munit { font-size: 14px; color: var(--ink-2); font-weight: 500; margin-left: 2px; }
+  .metric .mnum .dollar { color: var(--ink-2); font-weight: 500; }
+  .metric .mlbl { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-top: 7px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .metric .mtrend { font-size: 9.5px; color: var(--success); font-weight: 700; }
+  .metric .mtrend.warn { color: var(--amber); }
+  .metric .mtrend.down { color: var(--ink-3); }
+
+  /* TO-BE-BUDGETED BANNER */
+  .tbb-banner { background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 70%); border: 1px solid var(--accent-line); border-left: 3px solid var(--accent); border-radius: 13px; padding: 22px 26px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; margin-bottom: 20px; }
+  .tbb-left { min-width: 0; }
+  .tbb-lbl { font-family: var(--mono); font-size: 10.5px; color: var(--accent-dk); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 4px; }
+  .tbb-num { font-family: var(--body); font-weight: 800; font-size: 44px; letter-spacing: -0.03em; line-height: 1; color: var(--accent-dk); font-variant-numeric: tabular-nums; }
+  .tbb-num .dollar { color: var(--accent); opacity: 0.7; font-weight: 500; }
+  .tbb-sub { font-family: var(--display); font-style: italic; color: var(--ink-2); font-size: 14px; margin-top: 10px; line-height: 1.4; }
+  .tbb-sub .rollover { color: var(--teal); font-style: normal; font-weight: 600; font-family: var(--body); font-size: 12px; }
+  .tbb-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+  .tbb-actions button { background: var(--card); border: 1px solid var(--accent-line); color: var(--accent-dk); padding: 8px 16px; border-radius: 8px; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; white-space: nowrap; }
+  .tbb-actions button:hover { background: var(--accent-soft); }
+  .tbb-actions button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .tbb-actions button.primary:hover { background: var(--accent-dk); }
+
+  /* TWO-COLUMN LAYOUT */
+  .two-col { display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; margin-bottom: 20px; }
+
+  /* CARD BASE */
+  .card { background: var(--card); border: 1px solid var(--line-1); border-radius: 13px; overflow: hidden; display: flex; flex-direction: column; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px 12px; border-bottom: 1px solid var(--line-1); }
+  .card-title { font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+  .card-sub { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .card-body { padding: 12px 18px 16px; }
+
+  /* ENVELOPES */
+  .env-section { margin-bottom: 14px; }
+  .env-section:last-child { margin-bottom: 0; }
+  .env-section-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 8px; padding-top: 8px; border-top: 1px solid var(--line-1); }
+  .env-section:first-child .env-section-label { border-top: none; padding-top: 0; }
+  .env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .env-card { background: var(--paper); border: 1px solid var(--line-1); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color 0.15s; }
+  .env-card:hover { border-color: var(--line-2); }
+  .env-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .ec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .ec-name { font-family: var(--display); font-weight: 700; font-size: 13.5px; letter-spacing: -0.01em; }
+  .ec-remain { font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700; }
+  .ec-remain.warn { color: var(--amber); }
+  .ec-remain.danger { color: var(--danger); }
+  .ec-remain.done { color: var(--teal); }
+  .ec-amounts { display: flex; align-items: baseline; gap: 4px; margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+  .ec-spent { font-family: var(--body); font-weight: 800; font-size: 20px; letter-spacing: -0.025em; color: var(--ink-1); line-height: 1; }
+  .ec-spent .dollar { color: var(--ink-3); font-weight: 500; }
+  .ec-allocated { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); font-weight: 600; }
+  .ec-bar { height: 4px; background: var(--paper-2); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+  .ec-bar .fill { height: 100%; background: var(--teal); border-radius: 2px; transition: width 0.3s; }
+  .ec-bar.warn .fill { background: var(--amber); }
+  .ec-bar.danger .fill { background: var(--danger); }
+  .ec-bar.savings .fill { background: linear-gradient(90deg, var(--accent-lt), var(--accent)); }
+  .ec-note { font-family: var(--display); font-style: italic; font-size: 11.5px; color: var(--ink-2); line-height: 1.3; }
+  .ec-note .txn-count { font-family: var(--mono); font-style: normal; font-size: 10px; color: var(--ink-3); font-weight: 700; }
+
+  /* TRANSACTIONS LIST */
+  .txn-list { display: flex; flex-direction: column; }
+  .txn-row { display: grid; grid-template-columns: 60px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line-1); cursor: pointer; }
+  .txn-row:last-child { border-bottom: none; }
+  .txn-row:hover { background: var(--paper); margin: 0 -18px; padding: 10px 18px; }
+  .txn-date { font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .txn-date .txn-day { display: block; color: var(--ink-1); font-size: 15px; font-family: var(--display); font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+  .txn-info .txn-title { font-weight: 500; font-size: 13.5px; line-height: 1.2; }
+  .txn-info .txn-title .fx-badge { display: inline-block; margin-left: 6px; font-family: var(--mono); font-size: 9px; color: var(--plum); background: var(--plum-soft); padding: 1px 5px; border-radius: 3px; font-weight: 700; letter-spacing: 0.04em; vertical-align: 1px; }
+  .txn-info .txn-title .recur-badge { display: inline-block; margin-left: 6px; color: var(--ink-3); }
+  .txn-info .txn-title .recur-badge svg { width: 11px; height: 11px; stroke-width: 2; vertical-align: -1px; }
+  .txn-info .txn-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; display: flex; gap: 8px; align-items: center; }
+  .txn-info .txn-meta .env-tag { color: var(--ink-2); font-weight: 600; }
+  .txn-amount { font-family: var(--body); font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; text-align: right; }
+  .txn-amount.pos { color: var(--teal); }
+  .txn-amount.neg { color: var(--ink-1); }
+  .txn-amount .fx-orig { display: block; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); font-weight: 600; letter-spacing: 0.03em; margin-top: 1px; }
+
+  /* INSIGHT CALLOUTS ROW */
+  .insights-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 20px; }
+  .insight-card { background: var(--card); border: 1px solid var(--line-1); border-left: 3px solid; border-radius: 13px; padding: 18px 22px; }
+  .insight-card.warn { border-left-color: var(--amber); }
+  .insight-card.info { border-left-color: var(--plum); }
+  .ic-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .ic-label { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .insight-card.warn .ic-label { color: var(--amber); }
+  .insight-card.info .ic-label { color: var(--plum); }
+  .ic-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+  .ic-headline { font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: -0.015em; line-height: 1.2; margin-bottom: 4px; }
+  .ic-headline .big-num { font-family: var(--body); font-weight: 800; color: inherit; letter-spacing: -0.03em; }
+  .ic-desc { font-family: var(--display); font-style: italic; color: var(--ink-2); font-size: 13px; margin-bottom: 14px; line-height: 1.4; }
+  .ic-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .ic-item { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 7px 10px; background: var(--paper); border-radius: 7px; font-size: 12.5px; }
+  .ic-item .ii-name { font-weight: 600; }
+  .ic-item .ii-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 600; }
+  .ic-item .ii-amount { font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+  .ic-item .ii-tag { font-family: var(--mono); font-size: 9.5px; padding: 2px 7px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .ic-item .ii-tag.zero { background: var(--rose-soft); color: var(--danger); }
+  .ic-item .ii-tag.low { background: var(--amber-soft); color: var(--amber); }
+  .ic-item .ii-tag.ok { background: var(--teal-soft); color: var(--teal); }
+
+  .ic-sparkline { margin-top: 10px; }
+  .ic-sparkline svg { width: 100%; height: 44px; display: block; }
+  .ic-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-1); }
+  .ic-breakdown .bd-item .bd-lbl { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 3px; }
+  .ic-breakdown .bd-item .bd-val { font-family: var(--body); font-weight: 700; font-size: 15px; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+  .ic-breakdown .bd-item .bd-sub { font-family: var(--display); font-style: italic; font-size: 11.5px; color: var(--ink-2); margin-top: 2px; }
+
+  /* KEYBOARD HINTS */
+  .kbd-hints { position: fixed; bottom: 0; left: 220px; right: 0; height: 32px; background: var(--paper-2); border-top: 1px solid var(--line-1); display: flex; align-items: center; padding: 0 24px; gap: 18px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); z-index: 50; }
+  .kbd-hints .khint { display: inline-flex; align-items: center; gap: 5px; }
+  .kbd-hints .khint .kbd { background: var(--card); border: 1px solid var(--line-2); padding: 1px 6px; border-radius: 4px; font-size: 10px; color: var(--ink-2); font-weight: 700; }
+  .kbd-hints .khint .klbl { color: var(--ink-2); }
+
+  /* FLOATING TIMER */
+  .floating-timer { position: fixed; bottom: 44px; right: 22px; background: var(--ink-1); color: var(--paper); border-radius: 14px; padding: 12px 16px; box-shadow: 0 12px 32px rgba(31,30,27,0.16); display: flex; align-items: center; gap: 14px; z-index: 100; }
+  [data-theme="dark"] .floating-timer { background: var(--card); border: 1px solid var(--line-2); color: var(--ink-1); }
+  .floating-timer .ftindicator { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px rgba(232,130,94,0.25); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .floating-timer .ftmode { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; font-weight: 700; }
+  .floating-timer .fttitle { font-family: var(--display); font-weight: 700; font-size: 13px; margin-top: 1px; }
+  .floating-timer .fttime { font-family: var(--display); font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
+
+  @media (max-width: 1024px) {
+    .metrics-strip { grid-template-columns: repeat(2, 1fr); }
+    .two-col, .insights-row { grid-template-columns: 1fr; }
+    .tbb-banner { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      <div><div class="brand-name">Console</div><div class="brand-meta">offline · v0.1</div></div>
+    </div>
+    <div class="nav-group-label">Workspace</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg>Today <span class="nav-count">12</span></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m9 12 2 2 4-4"/></svg>Tasks <span class="nav-count">38</span></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M9 3v4M15 3v4"/></svg>Schedule <span class="nav-count">32</span></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Habits <span class="nav-count">6</span></div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Finance</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>Focus</div>
+    <div class="nav-group-label">Insight</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 6-7"/></svg>Analytics</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>Insights <span class="nav-count">3</span></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5h.1a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>Settings</div>
+    <div class="sidebar-footer"><span class="ondisk"></span><span>saved · IndexedDB</span></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">workspace<span class="sep">/</span><a href="#" style="color: inherit;">finance</a><span class="sep">/</span><span class="here">overview</span></div>
+      <div class="topbar-spacer"></div>
+      <div class="segmented"><button>7d</button><button class="active">30d</button><button>90d</button><button>all</button></div>
+      <button class="cmd-trigger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg><span>Search or run command…</span><span class="kbd">⌘ K</span></button>
+      <div class="theme-toggle" id="ttoggle"><button class="active" data-theme="light">light</button><button data-theme="dark">dark</button></div>
+    </div>
+
+    <div class="content">
+      <div class="content-inner">
+
+        <!-- PAGE HEAD -->
+        <div class="page-head">
+          <h1 class="page-title">Finance &mdash; <span class="em">June</span></h1>
+          <span class="page-sub">USD · 62 hours logged this month</span>
+          <div class="page-actions">
+            <div class="month-nav">
+              <button>‹</button>
+              <button class="this-btn">this month</button>
+              <button>›</button>
+            </div>
+            <button class="btn-mini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Import</button>
+            <button class="btn-mini primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>New transaction</button>
+          </div>
+        </div>
+
+        <!-- VIEW TABS -->
+        <div class="view-tabs">
+          <span class="vtab active">overview</span>
+          <span class="vtab">transactions <span class="vcount">84</span></span>
+          <span class="vtab">envelopes <span class="vcount">11</span></span>
+          <span class="vtab">subscriptions <span class="vcount">8</span></span>
+          <span class="vtab">reports</span>
+        </div>
+
+        <!-- METRICS STRIP -->
+        <div class="metrics-strip">
+          <div class="metric">
+            <div class="mnum pos"><span class="dollar">+$</span>3,340</div>
+            <div class="mlbl"><span>income · june</span><span class="mtrend">▲ 8% MoM</span></div>
+          </div>
+          <div class="metric">
+            <div class="mnum"><span class="dollar">$</span>2,093</div>
+            <div class="mlbl"><span>expenses</span><span class="mtrend down">63% of income</span></div>
+          </div>
+          <div class="metric">
+            <div class="mnum pos"><span class="dollar">+$</span>1,247</div>
+            <div class="mlbl"><span>net · savings rate</span><span class="mtrend">37%</span></div>
+          </div>
+          <div class="metric">
+            <div class="mnum"><span class="dollar">$</span>53<span class="munit">.87/hr</span></div>
+            <div class="mlbl"><span>hourly equivalent</span><span class="mtrend">62h logged</span></div>
+          </div>
+        </div>
+
+        <!-- TO-BE-BUDGETED BANNER -->
+        <div class="tbb-banner">
+          <div class="tbb-left">
+            <div class="tbb-lbl">◇ To be budgeted · june</div>
+            <div class="tbb-num"><span class="dollar">$</span>583</div>
+            <div class="tbb-sub">Assign every dollar. <span class="rollover">+$127 rollover</span> from May's unused envelopes.</div>
+          </div>
+          <div class="tbb-actions">
+            <button class="primary">Auto-allocate</button>
+            <button>Fund envelope</button>
+          </div>
+        </div>
+
+        <!-- TWO-COLUMN -->
+        <div class="two-col">
+
+          <!-- ENVELOPES -->
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Envelopes · 11 active</span>
+              <span class="card-sub">$2,757 allocated · 76% spent</span>
+            </div>
+            <div class="card-body">
+
+              <div class="env-section">
+                <div class="env-section-label">Fixed · $1,568</div>
+                <div class="env-grid">
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Housing</div><div class="ec-remain done">$0 left</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>1,200</span><span class="ec-allocated">/ $1,200</span></div>
+                    <div class="ec-bar"><div class="fill" style="width: 100%;"></div></div>
+                    <div class="ec-note">Rent paid on the 1st. <span class="txn-count">1 txn</span></div>
+                  </div>
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Utilities</div><div class="ec-remain warn">$40 left</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>180</span><span class="ec-allocated">/ $220</span></div>
+                    <div class="ec-bar warn"><div class="fill" style="width: 82%;"></div></div>
+                    <div class="ec-note">Electric bill higher than avg. <span class="txn-count">3 txns</span></div>
+                  </div>
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Subscriptions</div><div class="ec-remain warn">$34 left</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>114</span><span class="ec-allocated">/ $148</span></div>
+                    <div class="ec-bar warn"><div class="fill" style="width: 77%;"></div></div>
+                    <div class="ec-note">Cloud hosting renews Fri. <span class="txn-count">6 txns</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="env-section">
+                <div class="env-section-label">Living · $689</div>
+                <div class="env-grid">
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Groceries</div><div class="ec-remain">$166 left</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>234</span><span class="ec-allocated">/ $400</span></div>
+                    <div class="ec-bar"><div class="fill" style="width: 58%;"></div></div>
+                    <div class="ec-note">On pace · avg $56/wk. <span class="txn-count">14 txns</span></div>
+                  </div>
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Transport</div><div class="ec-remain">$111 left</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>89</span><span class="ec-allocated">/ $200</span></div>
+                    <div class="ec-bar"><div class="fill" style="width: 44%;"></div></div>
+                    <div class="ec-note">Under pace this month. <span class="txn-count">8 txns</span></div>
+                  </div>
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Dining out</div><div class="ec-remain">$83 left</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>167</span><span class="ec-allocated">/ $250</span></div>
+                    <div class="ec-bar"><div class="fill" style="width: 67%;"></div></div>
+                    <div class="ec-note">Two nights out planned this week. <span class="txn-count">7 txns</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="env-section">
+                <div class="env-section-label">Personal · $230</div>
+                <div class="env-grid">
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Hobbies</div><div class="ec-remain">$105 left</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>45</span><span class="ec-allocated">/ $150</span></div>
+                    <div class="ec-bar"><div class="fill" style="width: 30%;"></div></div>
+                    <div class="ec-note">Books, a keyboard cable. <span class="txn-count">3 txns</span></div>
+                  </div>
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Gifts</div><div class="ec-remain">$40 left</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>60</span><span class="ec-allocated">/ $100</span></div>
+                    <div class="ec-bar"><div class="fill" style="width: 60%;"></div></div>
+                    <div class="ec-note">Mom's birthday coming. <span class="txn-count">1 txn</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="env-section">
+                <div class="env-section-label">Savings · $270</div>
+                <div class="env-grid">
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Emergency</div><div class="ec-remain done">Full · $500</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>200</span><span class="ec-allocated">/ $200 this mo</span></div>
+                    <div class="ec-bar savings"><div class="fill" style="width: 100%;"></div></div>
+                    <div class="ec-note">Contribution goal met. <span class="txn-count">1 txn</span></div>
+                  </div>
+                  <div class="env-card">
+                    <div class="ec-head"><div class="ec-name">Vacation · Nov</div><div class="ec-remain">$30 left</div></div>
+                    <div class="ec-amounts"><span class="ec-spent"><span class="dollar">$</span>70</span><span class="ec-allocated">/ $100 this mo</span></div>
+                    <div class="ec-bar savings"><div class="fill" style="width: 70%;"></div></div>
+                    <div class="ec-note">$430 saved of $1,200 goal. <span class="txn-count">1 txn</span></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- RECENT TRANSACTIONS -->
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Recent transactions</span>
+              <span class="card-sub">last 10 · view all</span>
+            </div>
+            <div class="card-body">
+              <div class="txn-list">
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">24</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Salary · Acme Co</div>
+                    <div class="txn-meta"><span class="env-tag">income</span>· monthly</div>
+                  </div>
+                  <div class="txn-amount pos">+$3,200.00</div>
+                </div>
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">24</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Groceries · Pasaraya</div>
+                    <div class="txn-meta"><span class="env-tag">groceries</span></div>
+                  </div>
+                  <div class="txn-amount neg">−$47.30</div>
+                </div>
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">23</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Cloud hosting <span class="recur-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></span></div>
+                    <div class="txn-meta"><span class="env-tag">subscriptions</span>· auto · monthly</div>
+                  </div>
+                  <div class="txn-amount neg">−$24.00</div>
+                </div>
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">23</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Coffee · Kopikina</div>
+                    <div class="txn-meta"><span class="env-tag">dining out</span></div>
+                  </div>
+                  <div class="txn-amount neg">−$5.20</div>
+                </div>
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">22</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Gas · Pertamina</div>
+                    <div class="txn-meta"><span class="env-tag">transport</span></div>
+                  </div>
+                  <div class="txn-amount neg">−$52.00</div>
+                </div>
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">21</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Amazon · books</div>
+                    <div class="txn-meta"><span class="env-tag">hobbies</span>· 3 items</div>
+                  </div>
+                  <div class="txn-amount neg">−$34.90</div>
+                </div>
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">20</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Electric bill · PLN</div>
+                    <div class="txn-meta"><span class="env-tag">utilities</span></div>
+                  </div>
+                  <div class="txn-amount neg">−$95.40</div>
+                </div>
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">18</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Freelance · design project <span class="fx-badge">EUR</span></div>
+                    <div class="txn-meta"><span class="env-tag">income</span>· FX 1.083</div>
+                  </div>
+                  <div class="txn-amount pos">+$140.00<span class="fx-orig">€129.30 EUR</span></div>
+                </div>
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">17</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Dinner · with Maya</div>
+                    <div class="txn-meta"><span class="env-tag">dining out</span></div>
+                  </div>
+                  <div class="txn-amount neg">−$68.00</div>
+                </div>
+                <div class="txn-row">
+                  <div class="txn-date">jun<span class="txn-day">15</span></div>
+                  <div class="txn-info">
+                    <div class="txn-title">Netflix <span class="recur-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></span></div>
+                    <div class="txn-meta"><span class="env-tag">subscriptions</span>· auto · monthly</div>
+                  </div>
+                  <div class="txn-amount neg">−$17.99</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- INSIGHT CALLOUTS -->
+        <div class="insights-row">
+
+          <div class="insight-card warn">
+            <div class="ic-head">
+              <span class="ic-label">⚠ Subscription audit</span>
+              <span class="ic-meta">detector: subscription_low_use · 0.82</span>
+            </div>
+            <div class="ic-headline">
+              <span class="big-num">$52</span> spent on subs you barely used.
+            </div>
+            <div class="ic-desc">Three of your eight active subscriptions had fewer than 2 uses this month. Worth an audit.</div>
+            <div class="ic-list">
+              <div class="ic-item">
+                <span class="ii-name">Netflix</span>
+                <span class="ii-tag zero">0 uses</span>
+                <span class="ii-amount">$17.99/mo</span>
+              </div>
+              <div class="ic-item">
+                <span class="ii-name">Spotify Family</span>
+                <span class="ii-tag low">2 uses</span>
+                <span class="ii-amount">$16.99/mo</span>
+              </div>
+              <div class="ic-item">
+                <span class="ii-name">Notion AI add-on</span>
+                <span class="ii-tag low">1 use</span>
+                <span class="ii-amount">$17.00/mo</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="insight-card info">
+            <div class="ic-head">
+              <span class="ic-label">◇ Cost per focus hour</span>
+              <span class="ic-meta">cross-domain · updated 06:00</span>
+            </div>
+            <div class="ic-headline">
+              <span class="big-num">$33.76</span> per focus hour this month.
+            </div>
+            <div class="ic-desc">Fixed expenses divided by hours of deep-work logged. Lower is better — you're improving.</div>
+            <div class="ic-sparkline">
+              <svg viewBox="0 0 400 44" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="cpfhg" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="var(--plum)" stop-opacity="0.35"/>
+                    <stop offset="100%" stop-color="var(--plum)" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0,8 L40,10 L80,14 L120,12 L160,18 L200,22 L240,20 L280,26 L320,30 L360,34 L400,36 L400,44 L0,44 Z" fill="url(#cpfhg)"/>
+                <polyline points="0,8 40,10 80,14 120,12 160,18 200,22 240,20 280,26 320,30 360,34 400,36" fill="none" stroke="var(--plum)" stroke-width="1.8" vector-effect="non-scaling-stroke"/>
+                <circle cx="400" cy="36" r="3" fill="var(--plum)"/>
+              </svg>
+            </div>
+            <div class="ic-breakdown">
+              <div class="bd-item">
+                <div class="bd-lbl">Fixed spend</div>
+                <div class="bd-val">$2,093</div>
+                <div class="bd-sub">divided across…</div>
+              </div>
+              <div class="bd-item">
+                <div class="bd-lbl">Focus hours · june</div>
+                <div class="bd-val">62 h</div>
+                <div class="bd-sub">= $33.76 per hour</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <div class="kbd-hints">
+      <span class="khint"><span class="kbd">N</span><span class="klbl">new transaction</span></span>
+      <span class="khint"><span class="kbd">E</span><span class="klbl">envelope</span></span>
+      <span class="khint"><span class="kbd">F</span><span class="klbl">fund</span></span>
+      <span class="khint"><span class="kbd">J</span><span class="kbd">K</span><span class="klbl">navigate</span></span>
+      <span class="khint"><span class="kbd">↵</span><span class="klbl">open</span></span>
+      <span class="khint"><span class="kbd">⌘</span><span class="kbd">E</span><span class="klbl">edit</span></span>
+      <span class="khint"><span class="kbd">⌘</span><span class="kbd">I</span><span class="klbl">import</span></span>
+      <span class="khint"><span class="kbd">?</span><span class="klbl">all shortcuts</span></span>
+    </div>
+  </main>
+</div>
+
+<div class="floating-timer">
+  <div class="ftindicator"></div>
+  <div>
+    <div class="ftmode">Pomodoro · cycle 3 of 4</div>
+    <div class="fttitle">Project B · drafting</div>
+  </div>
+  <div class="fttime" id="ftime">05:18</div>
+</div>
+
+<script>
+  document.getElementById('ttoggle').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#ttoggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.documentElement.dataset.theme = btn.dataset.theme;
+  });
+  document.querySelectorAll('.segmented, .view-tabs').forEach(group => {
+    group.addEventListener('click', e => {
+      const btn = e.target.closest('button, .vtab');
+      if (!btn) return;
+      group.querySelectorAll('button, .vtab').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  document.querySelectorAll('.env-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.env-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    });
+  });
+  let seconds = 5 * 60 + 18;
+  setInterval(() => {
+    seconds--;
+    if (seconds < 0) seconds = 25 * 60;
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    document.getElementById('ftime').textContent = `${m}:${s}`;
+  }, 1000);
+</script>
+</body>
+</html>

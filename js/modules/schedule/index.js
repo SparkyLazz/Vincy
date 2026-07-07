@@ -149,7 +149,12 @@
     });
   }
 
-  function refreshAndRender() { return loadAll().then(render); }
+  function refreshAndRender() {
+    return loadAll().then(function () {
+      consumePendingSelection();
+      render();
+    });
+  }
 
   // ---------------------------------------------------------------- metrics
 
@@ -845,6 +850,17 @@
     }
     if (key === 'enter' && selectedId) { e.preventDefault(); openEditEventModal(findEvent(selectedId)); return; }
     if (key === 'e' && (e.metaKey || e.ctrlKey) && selectedId) { e.preventDefault(); openEditEventModal(findEvent(selectedId)); }
+  }
+
+  function consumePendingSelection() {
+    var pending = Console.pendingSelection;
+    if (!pending || pending.route !== 'schedule' || pending.kind !== 'event') return;
+    Console.pendingSelection = null;
+    var ev = findEvent(pending.id);
+    if (!ev) return;
+    selectedId = ev.id;
+    currentView = 'week';
+    if (ev.start_date) anchorDate = new Date(ev.start_date + 'T00:00:00');
   }
 
   // ---------------------------------------------------------------- module lifecycle

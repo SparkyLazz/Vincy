@@ -26,19 +26,27 @@
 
   var overlay, input, results;
   var activeIndex = 0;
-  var entityCache = { tasks: [], habits: [], events: [], projects: [] };
+  var entityCache = { tasks: [], habits: [], events: [], projects: [], transactions: [] };
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
 
   function loadEntities() {
     return Promise.all([
       Console.db.getAll('tasks'),
       Console.db.getAll('habits'),
       Console.db.getAll('events'),
-      Console.db.getAll('projects')
+      Console.db.getAll('projects'),
+      Console.db.getAll('transactions')
     ]).then(function (r) {
       entityCache.tasks = r[0];
       entityCache.habits = r[1];
       entityCache.events = r[2];
       entityCache.projects = r[3];
+      entityCache.transactions = r[4];
     });
   }
 
@@ -47,17 +55,32 @@
     if (!q) return base;
 
     var entities = [];
-    entityCache.tasks.filter(function (t) { return t.status !== 'done' && t.title.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 5).forEach(function (t) {
-      entities.push({ group: 'Tasks', label: t.title, route: 'tasks', id: t.id });
+    var query = q.toLowerCase();
+    entityCache.tasks.filter(function (t) { return (t.title || '').toLowerCase().indexOf(query) !== -1; }).slice(0, 5).forEach(function (t) {
+      entities.push({ group: 'Tasks', label: t.title, route: 'tasks', kind: 'task', id: t.id });
     });
-    entityCache.habits.filter(function (h) { return h.name.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 3).forEach(function (h) {
-      entities.push({ group: 'Habits', label: h.name, route: 'habits', id: h.id });
+    entityCache.habits.filter(function (h) { return (h.name || '').toLowerCase().indexOf(query) !== -1; }).slice(0, 3).forEach(function (h) {
+      entities.push({ group: 'Habits', label: h.name, route: 'habits', kind: 'habit', id: h.id });
     });
-    entityCache.events.filter(function (e) { return e.title.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 3).forEach(function (e) {
-      entities.push({ group: 'Events', label: e.title, route: 'schedule', id: e.id });
+    entityCache.events.filter(function (e) { return (e.title || '').toLowerCase().indexOf(query) !== -1; }).slice(0, 3).forEach(function (e) {
+      entities.push({ group: 'Events', label: e.title, route: 'schedule', kind: 'event', id: e.id, date: e.start_date });
     });
-    entityCache.projects.filter(function (p) { return !p.archived_at && p.name.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 3).forEach(function (p) {
-      entities.push({ group: 'Projects', label: p.name, route: 'tasks', id: p.id });
+    entityCache.projects.filter(function (p) { return !p.archived_at && (p.name || '').toLowerCase().indexOf(query) !== -1; }).slice(0, 3).forEach(function (p) {
+      entities.push({ group: 'Projects', label: p.name, route: 'tasks', kind: 'project', id: p.id });
+    });
+    entityCache.transactions.filter(function (t) {
+      var haystack = [t.title, t.notes, t.currency, t.date].join(' ').toLowerCase();
+      return haystack.indexOf(query) !== -1;
+    }).slice(0, 5).forEach(function (t) {
+      entities.push({
+        group: 'Transactions',
+        label: (t.title || 'Untitled transaction') + (t.date ? ' · ' + t.date : ''),
+        route: 'finance',
+        kind: 'transaction',
+        id: t.id,
+        period: (t.date || '').slice(0, 7),
+        view: 'transactions'
+      });
     });
 
     return base.concat(entities);
@@ -65,13 +88,19 @@
 
   function matches(item, q) {
     if (!q) return item.group !== 'Tasks' && item.group !== 'Habits' && item.group !== 'Events' && item.group !== 'Projects';
-    return item.label.toLowerCase().indexOf(q.toLowerCase()) !== -1;
+    return (item.label || '').toLowerCase().indexOf(q.toLowerCase()) !== -1;
   }
 
   function runItem(item) {
     if (item.id) {
-      // jump to the module; module should ideally handle selecting item.id if it's currently loaded
-      // but jumping to the view is the baseline win.
+      Console.pendingSelection = {
+        route: item.route,
+        kind: item.kind,
+        id: item.id,
+        date: item.date || null,
+        period: item.period || null,
+        view: item.view || null
+      };
       Console.router.navigate(item.route);
     } else if (item.route) {
       Console.router.navigate(item.route);
@@ -102,7 +131,7 @@
       html += '<div class="pgroup">' + groupName + '</div>';
       groups[groupName].forEach(function (item) {
         html += '<div class="prow' + (flatIndex === 0 ? ' active' : '') + '" data-index="' + flatIndex + '">' +
-          '<span>' + item.label + '</span></div>';
+          '<span>' + escapeHtml(item.label) + '</span></div>';
         flatIndex++;
       });
     });

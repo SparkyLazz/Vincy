@@ -1103,11 +1103,36 @@
     render();
   }
 
+  function consumePendingSelection() {
+    var pending = Console.pendingSelection;
+    if (!pending || pending.route !== 'tasks') return;
+    Console.pendingSelection = null;
+
+    if (pending.kind === 'task') {
+      var task = findTask(pending.id);
+      if (!task) return;
+      selectedId = task.id;
+      if (task.status === 'done') currentView = 'done';
+      else if (task.status === 'inbox') currentView = 'inbox';
+      else if (task.status === 'someday') currentView = 'someday';
+      else if (task.status === 'waiting') currentView = 'waiting';
+      else if (task.project_id) currentView = 'project';
+      else if (task.tags && task.tags.length) currentView = 'tag';
+      else currentView = task.due_date === fmt.todayISO() ? 'today' : 'upcoming';
+    } else if (pending.kind === 'project') {
+      currentView = 'project';
+      var projectTask = cache.tasks.find(function (t) { return t.project_id === pending.id && t.status !== 'done'; }) ||
+        cache.tasks.find(function (t) { return t.project_id === pending.id; });
+      selectedId = projectTask ? projectTask.id : null;
+    }
+  }
+
   function refreshAndRender() {
     return Promise.all([db.getAll('tasks'), db.getAll('projects'), db.getAll('habits')]).then(function (results) {
       cache.tasks = results[0];
       cache.projects = results[1];
       cache.habits = results[2]; // only read by the New Task modal's tag picker (collectAllTags)
+      consumePendingSelection();
       render();
     });
   }

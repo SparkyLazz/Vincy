@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Console — Habits · All habits (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FAF9F5; --paper-2: #F4F2EB; --card: #FFFFFF;
+    --ink-1: #1F1E1B; --ink-2: #57544D; --ink-3: #8B877E; --ink-4: #BAB6AC;
+    --line-1: rgba(31,30,27,0.07); --line-2: rgba(31,30,27,0.14);
+    --accent: #C96442; --accent-dk: #A04E32; --accent-lt: #E5947A; --accent-soft: #F6E5DD; --accent-line: rgba(201,100,66,0.30);
+    --teal: #4A7C5C; --teal-soft: #E1ECE3;
+    --blue: #4A6FA5; --blue-soft: #DEE7F4;
+    --amber: #B5740A; --amber-soft: #F8EBCC;
+    --plum: #7A5C8C; --plum-soft: #EBE0F1;
+    --rose: #B14D6B; --rose-soft: #F4DDE3;
+    --success: #4A7C5C; --warning: #B5740A; --danger: #B14D3F;
+    --display: 'Source Serif 4', Georgia, serif;
+    --body: 'Inter', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  [data-theme="dark"] {
+    --paper: #1A1714; --paper-2: #221E1A; --card: #25201C;
+    --ink-1: #F2EDE3; --ink-2: #B3AC9F; --ink-3: #807A6F; --ink-4: #524C44;
+    --line-1: rgba(242,237,227,0.06); --line-2: rgba(242,237,227,0.14);
+    --accent: #E8825E; --accent-dk: #C96442; --accent-lt: #F4A98F; --accent-soft: rgba(232,130,94,0.14); --accent-line: rgba(232,130,94,0.32);
+    --teal: #6FAE85; --teal-soft: rgba(111,174,133,0.18);
+    --blue: #7A99CD; --blue-soft: rgba(122,153,205,0.18);
+    --amber: #DC9430; --amber-soft: rgba(220,148,48,0.18);
+    --plum: #A488B5; --plum-soft: rgba(164,136,181,0.18);
+    --rose: #D17D95; --rose-soft: rgba(209,125,149,0.18);
+    --success: #6FAE85; --warning: #DC9430; --danger: #D17D70;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--paper); color: var(--ink-1); font-family: var(--body); font-size: 14.5px; line-height: 1.55; -webkit-font-smoothing: antialiased; transition: background 0.2s, color 0.2s; overflow: hidden; }
+
+  .app { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { background: var(--paper-2); border-right: 1px solid var(--line-1); display: flex; flex-direction: column; padding: 18px 0; }
+  .brand { padding: 4px 18px 22px; display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; color: white; font-family: var(--display); font-style: italic; font-weight: 700; font-size: 15px; }
+  .brand-name { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+  .brand-meta { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-top: -2px; }
+  .nav-group-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; padding: 12px 18px 4px; }
+  .nav-item { display: flex; align-items: center; gap: 11px; padding: 7px 18px; cursor: pointer; color: var(--ink-2); font-size: 13.5px; font-weight: 500; position: relative; }
+  .nav-item:hover { color: var(--ink-1); background: var(--line-1); }
+  .nav-item.active { color: var(--accent); background: var(--accent-soft); }
+  .nav-item.active::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; }
+  .nav-item svg { width: 15px; height: 15px; stroke-width: 1.7; flex-shrink: 0; }
+  .nav-item .nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700; }
+  .nav-item.active .nav-count { color: var(--accent); }
+  .sidebar-footer { margin-top: auto; padding: 14px 18px; display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); border-top: 1px solid var(--line-1); }
+  .sidebar-footer .ondisk { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px rgba(74,124,92,0.18); }
+
+  /* MAIN */
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 56px; border-bottom: 1px solid var(--line-1); display: flex; align-items: center; padding: 0 26px; gap: 16px; flex-shrink: 0; }
+  .breadcrumb { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); letter-spacing: 0.04em; }
+  .breadcrumb .sep { color: var(--ink-4); margin: 0 7px; }
+  .breadcrumb .here { color: var(--ink-1); font-weight: 700; }
+  .topbar-spacer { flex: 1; }
+  .segmented { display: inline-flex; background: var(--paper-2); border-radius: 8px; padding: 3px; }
+  .segmented button { background: transparent; border: none; padding: 4px 11px; font-family: var(--mono); font-size: 11px; color: var(--ink-2); cursor: pointer; border-radius: 5px; font-weight: 600; }
+  .segmented button.active { background: var(--card); color: var(--ink-1); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .cmd-trigger { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 12px; border: 1px solid var(--line-2); border-radius: 7px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; background: var(--card); min-width: 230px; }
+  .cmd-trigger:hover { border-color: var(--ink-3); }
+  .cmd-trigger .kbd { background: var(--paper-2); padding: 1px 5px; border-radius: 4px; font-size: 10px; color: var(--ink-2); font-weight: 700; margin-left: auto; }
+  .cmd-trigger svg { width: 13px; height: 13px; stroke-width: 1.7; color: var(--ink-3); }
+  .theme-toggle { display: inline-flex; gap: 1px; background: var(--paper-2); padding: 3px; border-radius: 999px; }
+  .theme-toggle button { background: transparent; border: none; padding: 5px 11px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); cursor: pointer; border-radius: 999px; font-weight: 700; text-transform: lowercase; letter-spacing: 0.04em; }
+  .theme-toggle button.active { background: var(--card); color: var(--ink-1); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+  /* PAGE HEAD */
+  .page-head-row { padding: 22px 36px 0; }
+  .page-head-row .inner { max-width: 1180px; margin: 0 auto; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  .page-title { font-family: var(--display); font-weight: 700; font-size: 32px; letter-spacing: -0.02em; line-height: 1; }
+  .page-title .em { color: var(--accent); font-style: italic; font-weight: 400; }
+  .page-sub { font-family: var(--display); font-style: italic; font-size: 14px; color: var(--ink-2); }
+  .page-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn-mini { background: var(--card); border: 1px solid var(--line-2); padding: 6px 12px; border-radius: 7px; font-family: var(--mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-mini:hover { background: var(--paper-2); color: var(--ink-1); }
+  .btn-mini.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn-mini.primary:hover { background: var(--accent-dk); }
+  .btn-mini svg { width: 12px; height: 12px; stroke-width: 2; }
+
+  /* VIEW TABS */
+  .view-tabs-row { padding: 18px 36px 0; }
+  .view-tabs-inner { max-width: 1180px; margin: 0 auto; border-bottom: 1px solid var(--line-1); display: flex; gap: 0; }
+  .vtab { padding: 10px 14px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 700; letter-spacing: 0.04em; text-transform: lowercase; display: inline-flex; align-items: center; gap: 6px; }
+  .vtab:hover { color: var(--ink-2); }
+  .vtab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .vtab .vcount { font-size: 10px; color: var(--ink-3); background: var(--paper-2); padding: 1px 6px; border-radius: 999px; font-weight: 700; }
+  .vtab.active .vcount { color: var(--accent); background: var(--accent-soft); }
+
+  /* METRICS */
+  .metrics-row { padding: 18px 36px 0; }
+  .metrics-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .metric { background: var(--card); border: 1px solid var(--line-1); border-radius: 11px; padding: 14px 18px; }
+  .metric .mnum { font-family: var(--body); font-weight: 800; font-size: 26px; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink-1); }
+  .metric .mnum .munit { font-size: 13px; color: var(--ink-2); font-weight: 500; margin-left: 2px; }
+  .metric .mnum.teal { color: var(--teal); }
+  .metric .mnum.amber { color: var(--amber); }
+  .metric .mlbl { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-top: 7px; display: flex; align-items: center; justify-content: space-between; }
+  .metric .mtrend { font-size: 9.5px; color: var(--success); font-weight: 700; }
+  .metric .mtrend.warn { color: var(--amber); }
+  .metric .mtrend.down { color: var(--ink-3); }
+
+  /* PHILOSOPHY NOTE */
+  .philosophy { padding: 14px 36px 0; }
+  .philosophy-inner { max-width: 1180px; margin: 0 auto; font-family: var(--display); font-style: italic; font-size: 13.5px; color: var(--ink-2); border-left: 2px solid var(--accent-line); padding: 6px 14px; }
+  .philosophy-inner strong { color: var(--accent-dk); font-style: normal; font-weight: 600; font-family: var(--body); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; margin-right: 6px; }
+
+  /* TWO PANE */
+  .twopane-row { padding: 18px 36px 70px; flex: 1; overflow: hidden; min-height: 0; }
+  .twopane-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.15fr 1fr; gap: 18px; height: 100%; }
+  .pane { background: var(--card); border: 1px solid var(--line-1); border-radius: 13px; overflow: hidden; display: flex; flex-direction: column; }
+  .pane-head { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line-1); flex-shrink: 0; }
+  .pane-title { font-family: var(--display); font-weight: 700; font-size: 14px; }
+  .pane-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-left: auto; }
+  .pane-body { flex: 1; overflow-y: auto; padding: 16px; }
+  .pane-body::-webkit-scrollbar { width: 9px; }
+  .pane-body::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 5px; }
+
+  /* HABITS GRID (in left pane) */
+  .habits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .habit-card { background: var(--paper); border: 1px solid var(--line-1); border-radius: 11px; padding: 14px 16px; cursor: pointer; transition: border-color 0.15s, transform 0.1s; position: relative; }
+  .habit-card:hover { border-color: var(--line-2); }
+  .habit-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .habit-card.selected::before { content: ""; position: absolute; left: -1px; top: 8px; bottom: 8px; width: 3px; background: var(--accent); border-radius: 0 2px 2px 0; }
+  .hc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .hc-name { font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; line-height: 1.2; flex: 1; }
+  .hc-pct { font-family: var(--body); font-weight: 800; font-size: 22px; letter-spacing: -0.025em; color: var(--teal); line-height: 1; font-variant-numeric: tabular-nums; }
+  .hc-pct.warn { color: var(--amber); }
+  .hc-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .pill { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .pill.teal { background: var(--teal-soft); color: var(--teal); }
+  .pill.plum { background: var(--plum-soft); color: var(--plum); }
+  .pill.amber { background: var(--amber-soft); color: var(--amber); }
+  .pill.blue { background: var(--blue-soft); color: var(--blue); }
+  .pill.rose { background: var(--rose-soft); color: var(--danger); }
+  .pill.neutral { background: var(--paper-2); color: var(--ink-3); }
+  .hc-target { font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 600; }
+  .hc-chain { display: grid; grid-template-columns: repeat(14, 1fr); gap: 2px; margin-bottom: 11px; }
+  .hc-chain .day { aspect-ratio: 1 / 1; background: var(--paper-2); border-radius: 2px; }
+  .hc-chain .day.done { background: var(--teal); }
+  .hc-chain .day.partial { background: var(--teal-soft); border: 1px solid var(--teal); }
+  .hc-chain .day.skip { background: var(--paper-2); position: relative; }
+  .hc-chain .day.skip::after { content: ""; position: absolute; inset: 40%; background: var(--ink-4); border-radius: 50%; }
+  .hc-chain .day.miss { background: var(--rose-soft); }
+  .hc-chain .day.today { outline: 1.5px solid var(--accent); outline-offset: 1px; }
+  .hc-today { display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line-1); }
+  .hc-today .today-lbl { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .hc-today .log-btns { display: flex; gap: 4px; margin-left: auto; }
+  .hlog { width: 22px; height: 22px; border: 1.5px solid var(--line-2); border-radius: 5px; background: var(--card); cursor: pointer; display: grid; place-items: center; font-family: var(--body); font-size: 12px; color: var(--ink-3); font-weight: 700; transition: all 0.15s; padding: 0; }
+  .hlog:hover { border-color: var(--ink-2); color: var(--ink-1); }
+  .hlog.active.done { background: var(--teal); border-color: var(--teal); color: white; }
+  .hlog.active.partial { background: var(--teal-soft); border-color: var(--teal); color: var(--teal); }
+  .hlog.active.skip { background: var(--paper-2); border-color: var(--ink-3); color: var(--ink-3); }
+  .hlog.active.miss { background: var(--rose-soft); border-color: var(--danger); color: var(--danger); }
+  .hc-today .today-val { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); font-weight: 700; }
+
+  /* DETAIL PANEL */
+  .detail-head { padding: 20px 22px 16px; border-bottom: 1px solid var(--line-1); }
+  .dh-eyebrow { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 8px; }
+  .dh-title { font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: -0.015em; line-height: 1.15; margin-bottom: 6px; }
+  .dh-identity { font-family: var(--display); font-style: italic; font-size: 15px; color: var(--accent); margin-bottom: 12px; }
+  .dh-identity::before { content: "\201C"; margin-right: 2px; }
+  .dh-identity::after { content: "\201D"; margin-left: 2px; }
+  .dh-stats { display: flex; gap: 20px; align-items: baseline; }
+  .dh-stat .dhs-num { font-family: var(--body); font-weight: 800; font-size: 28px; letter-spacing: -0.03em; line-height: 1; color: var(--teal); font-variant-numeric: tabular-nums; }
+  .dh-stat .dhs-num .dhs-unit { font-size: 14px; color: var(--ink-2); font-weight: 500; margin-left: 2px; }
+  .dh-stat .dhs-lbl { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-top: 4px; }
+
+  .detail-section { padding: 16px 22px; border-bottom: 1px solid var(--line-1); }
+  .detail-section .ds-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .detail-section .ds-title { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; }
+  .detail-section .ds-action { font-family: var(--mono); font-size: 10px; color: var(--accent); font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* FRAMEWORK GRID */
+  .framework-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fw-item { background: var(--paper); border: 1px solid var(--line-1); border-left: 3px solid; border-radius: 8px; padding: 12px 14px; }
+  .fw-item.cue { border-left-color: var(--amber); }
+  .fw-item.craving { border-left-color: var(--rose); }
+  .fw-item.response { border-left-color: var(--blue); }
+  .fw-item.reward { border-left-color: var(--teal); }
+  .fw-item .fw-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+  .fw-item .fw-label .fw-rule { font-style: italic; font-family: var(--display); text-transform: none; letter-spacing: 0; color: var(--ink-4); font-weight: 400; font-size: 10px; }
+  .fw-item .fw-value { font-size: 13px; line-height: 1.4; color: var(--ink-1); }
+
+  .stack-env-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .stack-item { background: var(--paper); border: 1px solid var(--line-1); border-radius: 8px; padding: 12px 14px; }
+  .stack-item .si-label { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); font-weight: 700; margin-bottom: 4px; }
+  .stack-item .si-value { font-size: 13px; line-height: 1.4; color: var(--ink-1); }
+  .stack-item .si-value .stack-arrow { color: var(--accent); margin: 0 6px; font-weight: 700; }
+
+  /* CONSISTENCY CHART */
+  .consistency-chart { margin-top: 8px; }
+  .consistency-chart svg { width: 100%; height: 60px; display: block; }
+  .cc-scale { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); margin-top: 4px; font-weight: 600; }
+
+  /* FULL CHAIN (60-day) */
+  .chain-full { display: grid; grid-template-columns: repeat(30, 1fr); gap: 3px; margin-top: 6px; }
+  .chain-full .cf-day { aspect-ratio: 1 / 1; background: var(--paper-2); border-radius: 2px; position: relative; }
+  .chain-full .cf-day.done { background: var(--teal); }
+  .chain-full .cf-day.partial { background: var(--teal-soft); border: 1px solid var(--teal); }
+  .chain-full .cf-day.skip { background: var(--paper-2); }
+  .chain-full .cf-day.skip::after { content: ""; position: absolute; inset: 40%; background: var(--ink-4); border-radius: 50%; }
+  .chain-full .cf-day.miss { background: var(--rose-soft); }
+  .chain-full .cf-day.today { outline: 1.5px solid var(--accent); outline-offset: 1px; z-index: 2; }
+  .chain-labels { display: flex; justify-content: space-between; margin-top: 6px; font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); font-weight: 600; }
+
+  /* LOG HISTORY */
+  .log-history { display: flex; flex-direction: column; }
+  .log-row { display: grid; grid-template-columns: 100px 1fr auto auto; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-1); font-size: 12.5px; }
+  .log-row:last-child { border-bottom: none; }
+  .log-row .lr-date { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); font-weight: 600; }
+  .log-row .lr-date .lr-time { color: var(--ink-3); font-weight: 500; }
+  .log-row .lr-value { font-family: var(--mono); font-size: 11px; color: var(--ink-1); font-weight: 700; }
+  .log-row .lr-value.muted { color: var(--ink-3); font-weight: 500; }
+  .log-row .lr-state { font-family: var(--mono); font-size: 9.5px; padding: 2px 7px; border-radius: 999px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .log-row .lr-state.done { background: var(--teal-soft); color: var(--teal); }
+  .log-row .lr-state.partial { background: var(--teal-soft); color: var(--teal); opacity: 0.7; }
+  .log-row .lr-state.skip { background: var(--paper-2); color: var(--ink-3); }
+  .log-row .lr-state.miss { background: var(--rose-soft); color: var(--danger); }
+  .log-row .lr-note { font-family: var(--display); font-style: italic; color: var(--ink-2); font-size: 12px; }
+
+  /* CROSS DOMAIN */
+  .cd-links { display: flex; flex-direction: column; gap: 10px; }
+  .cd-link { display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; background: var(--paper); border: 1px solid var(--line-1); border-radius: 8px; }
+  .cd-link .cd-icn { width: 32px; height: 32px; background: var(--plum-soft); color: var(--plum); border-radius: 7px; display: grid; place-items: center; }
+  .cd-link .cd-icn svg { width: 15px; height: 15px; stroke-width: 1.7; }
+  .cd-link .cd-info .cd-title { font-weight: 600; font-size: 13px; }
+  .cd-link .cd-info .cd-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+  .cd-link .cd-count { font-family: var(--body); font-weight: 800; font-size: 20px; color: var(--plum); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+  /* ACTIONS BAR */
+  .detail-actions { padding: 14px 22px; display: flex; gap: 6px; flex-wrap: wrap; border-top: 1px solid var(--line-1); background: var(--paper); }
+  .detail-actions button { background: var(--card); border: 1px solid var(--line-2); padding: 6px 11px; border-radius: 7px; font-family: var(--mono); font-size: 10.5px; font-weight: 700; color: var(--ink-2); cursor: pointer; text-transform: uppercase; letter-spacing: 0.04em; }
+  .detail-actions button:hover { background: var(--paper-2); color: var(--ink-1); }
+  .detail-actions button.primary { background: var(--teal); border-color: var(--teal); color: white; }
+  .detail-actions button.primary:hover { background: var(--teal); filter: brightness(1.05); }
+  .detail-actions button.danger { color: var(--danger); border-color: rgba(177,77,63,0.30); margin-left: auto; }
+
+  /* KEYBOARD HINTS */
+  .kbd-hints { position: fixed; bottom: 0; left: 220px; right: 0; height: 32px; background: var(--paper-2); border-top: 1px solid var(--line-1); display: flex; align-items: center; padding: 0 24px; gap: 18px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); z-index: 50; }
+  .kbd-hints .khint { display: inline-flex; align-items: center; gap: 5px; }
+  .kbd-hints .khint .kbd { background: var(--card); border: 1px solid var(--line-2); padding: 1px 6px; border-radius: 4px; font-size: 10px; color: var(--ink-2); font-weight: 700; }
+  .kbd-hints .khint .klbl { color: var(--ink-2); }
+
+  /* FLOATING TIMER */
+  .floating-timer { position: fixed; bottom: 44px; right: 22px; background: var(--ink-1); color: var(--paper); border-radius: 14px; padding: 12px 16px; box-shadow: 0 12px 32px rgba(31,30,27,0.16); display: flex; align-items: center; gap: 14px; z-index: 100; }
+  [data-theme="dark"] .floating-timer { background: var(--card); border: 1px solid var(--line-2); color: var(--ink-1); }
+  .floating-timer .ftindicator { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px rgba(232,130,94,0.25); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .floating-timer .ftmode { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.65; font-weight: 700; }
+  .floating-timer .fttitle { font-family: var(--display); font-weight: 700; font-size: 13px; margin-top: 1px; }
+  .floating-timer .fttime { font-family: var(--display); font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      <div>
+        <div class="brand-name">Console</div>
+        <div class="brand-meta">offline · v0.1</div>
+      </div>
+    </div>
+    <div class="nav-group-label">Workspace</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg>Today <span class="nav-count">12</span></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m9 12 2 2 4-4"/></svg>Tasks <span class="nav-count">38</span></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M9 3v4M15 3v4"/></svg>Schedule <span class="nav-count">32</span></div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Habits <span class="nav-count">6</span></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Finance</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>Focus</div>
+    <div class="nav-group-label">Insight</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 6-7"/></svg>Analytics</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>Insights <span class="nav-count">3</span></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3h.1a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5h.1a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8v.1a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>Settings</div>
+    <div class="sidebar-footer"><span class="ondisk"></span><span>saved · IndexedDB</span></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">workspace<span class="sep">/</span><a href="#" style="color: inherit;">habits</a><span class="sep">/</span><span class="here">all</span></div>
+      <div class="topbar-spacer"></div>
+      <div class="segmented"><button>7d</button><button class="active">30d</button><button>90d</button><button>all</button></div>
+      <button class="cmd-trigger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg><span>Search or run command…</span><span class="kbd">⌘ K</span></button>
+      <div class="theme-toggle" id="ttoggle"><button class="active" data-theme="light">light</button><button data-theme="dark">dark</button></div>
+    </div>
+
+    <div class="page-head-row">
+      <div class="inner">
+        <h1 class="page-title">Habits &mdash; <span class="em">All habits</span></h1>
+        <span class="page-sub">6 tracked · 78% avg consistency · 62 days in</span>
+        <div class="page-actions">
+          <button class="btn-mini"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M6 12h12M10 18h4"/></svg>Filter</button>
+          <button class="btn-mini primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg>New habit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-tabs-row">
+      <div class="view-tabs-inner">
+        <span class="vtab">today <span class="vcount">6</span></span>
+        <span class="vtab active">all habits <span class="vcount">6</span></span>
+        <span class="vtab">correlations</span>
+        <span class="vtab">archive <span class="vcount">2</span></span>
+      </div>
+    </div>
+
+    <div class="metrics-row">
+      <div class="metrics-inner">
+        <div class="metric"><div class="mnum teal">78<span class="munit">%</span></div><div class="mlbl"><span>avg consistency · 30d</span><span class="mtrend">▲ +6 pts vs last</span></div></div>
+        <div class="metric"><div class="mnum">6<span class="munit">/6</span></div><div class="mlbl"><span>active habits</span><span class="mtrend">all tracked today</span></div></div>
+        <div class="metric"><div class="mnum teal">91<span class="munit">%</span></div><div class="mlbl"><span>best · read</span><span class="mtrend">keystone</span></div></div>
+        <div class="metric"><div class="mnum amber">61<span class="munit">%</span></div><div class="mlbl"><span>watch · no screens</span><span class="mtrend warn">−3 pts</span></div></div>
+      </div>
+    </div>
+
+    <div class="philosophy">
+      <div class="philosophy-inner">
+        <strong>No streaks</strong>Consistency is measured as rolling 30-day % — missing one day never resets your progress. Antifragile by design.
+      </div>
+    </div>
+
+    <div class="twopane-row">
+      <div class="twopane-inner">
+
+        <!-- HABITS GRID -->
+        <div class="pane">
+          <div class="pane-head">
+            <span class="pane-title">Habits · rolling 30-day</span>
+            <span class="pane-meta">last 14 days shown</span>
+          </div>
+          <div class="pane-body">
+            <div class="habits-grid">
+
+              <div class="habit-card selected">
+                <div class="hc-head">
+                  <div class="hc-name">Read 30 min</div>
+                  <div class="hc-pct">91%</div>
+                </div>
+                <div class="hc-meta">
+                  <span class="pill teal">keystone</span>
+                  <span class="hc-target">30 pages/day</span>
+                </div>
+                <div class="hc-chain">
+                  <div class="day done"></div><div class="day done"></div><div class="day done"></div><div class="day done"></div><div class="day partial"></div><div class="day skip"></div><div class="day done"></div>
+                  <div class="day done"></div><div class="day done"></div><div class="day done"></div><div class="day partial"></div><div class="day done"></div><div class="day done"></div><div class="day today done"></div>
+                </div>
+                <div class="hc-today">
+                  <span class="today-lbl">Today</span>
+                  <span class="today-val">30 pg · 07:12</span>
+                  <div class="log-btns">
+                    <button class="hlog active done">✓</button>
+                    <button class="hlog">~</button>
+                    <button class="hlog">○</button>
+                    <button class="hlog">×</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="habit-card">
+                <div class="hc-head">
+                  <div class="hc-name">Morning pages</div>
+                  <div class="hc-pct">84%</div>
+                </div>
+                <div class="hc-meta">
+                  <span class="pill blue">writing</span>
+                  <span class="hc-target">750 words</span>
+                </div>
+                <div class="hc-chain">
+                  <div class="day done"></div><div class="day done"></div><div class="day partial"></div><div class="day done"></div><div class="day done"></div><div class="day skip"></div><div class="day done"></div>
+                  <div class="day done"></div><div class="day partial"></div><div class="day done"></div><div class="day done"></div><div class="day done"></div><div class="day done"></div><div class="day today done"></div>
+                </div>
+                <div class="hc-today">
+                  <span class="today-lbl">Today</span>
+                  <span class="today-val">820 w · 06:40</span>
+                  <div class="log-btns">
+                    <button class="hlog active done">✓</button>
+                    <button class="hlog">~</button>
+                    <button class="hlog">○</button>
+                    <button class="hlog">×</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="habit-card">
+                <div class="hc-head">
+                  <div class="hc-name">Meditate 10 min</div>
+                  <div class="hc-pct">88%</div>
+                </div>
+                <div class="hc-meta">
+                  <span class="pill plum">mindfulness</span>
+                  <span class="hc-target">daily</span>
+                </div>
+                <div class="hc-chain">
+                  <div class="day done"></div><div class="day done"></div><div class="day done"></div><div class="day skip"></div><div class="day done"></div><div class="day done"></div><div class="day done"></div>
+                  <div class="day done"></div><div class="day done"></div><div class="day partial"></div><div class="day done"></div><div class="day done"></div><div class="day done"></div><div class="day today done"></div>
+                </div>
+                <div class="hc-today">
+                  <span class="today-lbl">Today</span>
+                  <span class="today-val">10 min · 07:45</span>
+                  <div class="log-btns">
+                    <button class="hlog active done">✓</button>
+                    <button class="hlog">~</button>
+                    <button class="hlog">○</button>
+                    <button class="hlog">×</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="habit-card">
+                <div class="hc-head">
+                  <div class="hc-name">Lift weights</div>
+                  <div class="hc-pct">72%</div>
+                </div>
+                <div class="hc-meta">
+                  <span class="pill amber">strength</span>
+                  <span class="hc-target">45 min · 3× per week</span>
+                </div>
+                <div class="hc-chain">
+                  <div class="day done"></div><div class="day skip"></div><div class="day done"></div><div class="day skip"></div><div class="day done"></div><div class="day skip"></div><div class="day skip"></div>
+                  <div class="day done"></div><div class="day skip"></div><div class="day done"></div><div class="day partial"></div><div class="day skip"></div><div class="day done"></div><div class="day today"></div>
+                </div>
+                <div class="hc-today">
+                  <span class="today-lbl">Today</span>
+                  <span class="today-val">not yet</span>
+                  <div class="log-btns">
+                    <button class="hlog">✓</button>
+                    <button class="hlog">~</button>
+                    <button class="hlog">○</button>
+                    <button class="hlog">×</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="habit-card">
+                <div class="hc-head">
+                  <div class="hc-name">Walk after lunch</div>
+                  <div class="hc-pct">67%</div>
+                </div>
+                <div class="hc-meta">
+                  <span class="pill teal">movement</span>
+                  <span class="hc-target">15 min</span>
+                </div>
+                <div class="hc-chain">
+                  <div class="day done"></div><div class="day skip"></div><div class="day done"></div><div class="day done"></div><div class="day skip"></div><div class="day partial"></div><div class="day done"></div>
+                  <div class="day partial"></div><div class="day done"></div><div class="day miss"></div><div class="day done"></div><div class="day partial"></div><div class="day done"></div><div class="day today"></div>
+                </div>
+                <div class="hc-today">
+                  <span class="today-lbl">Today</span>
+                  <span class="today-val">not yet</span>
+                  <div class="log-btns">
+                    <button class="hlog">✓</button>
+                    <button class="hlog">~</button>
+                    <button class="hlog">○</button>
+                    <button class="hlog">×</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="habit-card">
+                <div class="hc-head">
+                  <div class="hc-name">No screens after 10pm</div>
+                  <div class="hc-pct warn">61%</div>
+                </div>
+                <div class="hc-meta">
+                  <span class="pill rose">avoid · sleep</span>
+                  <span class="hc-target">nightly</span>
+                </div>
+                <div class="hc-chain">
+                  <div class="day done"></div><div class="day miss"></div><div class="day done"></div><div class="day done"></div><div class="day miss"></div><div class="day done"></div><div class="day miss"></div>
+                  <div class="day done"></div><div class="day done"></div><div class="day miss"></div><div class="day done"></div><div class="day miss"></div><div class="day done"></div><div class="day today miss"></div>
+                </div>
+                <div class="hc-today">
+                  <span class="today-lbl">Last night</span>
+                  <span class="today-val">−</span>
+                  <div class="log-btns">
+                    <button class="hlog">✓</button>
+                    <button class="hlog">~</button>
+                    <button class="hlog">○</button>
+                    <button class="hlog active miss">×</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- DETAIL PANEL -->
+        <div class="pane">
+          <div class="pane-head">
+            <span class="pane-title">Habit detail</span>
+            <span class="pane-meta">⌘ E to edit</span>
+          </div>
+          <div class="pane-body" style="padding: 0;">
+
+            <div class="detail-head">
+              <div class="dh-eyebrow">selected · 1 of 6</div>
+              <div class="dh-title">Read 30 min</div>
+              <div class="dh-identity">I am a reader</div>
+              <div class="dh-stats">
+                <div class="dh-stat">
+                  <div class="dhs-num">91<span class="dhs-unit">%</span></div>
+                  <div class="dhs-lbl">rolling 30d</div>
+                </div>
+                <div class="dh-stat">
+                  <div class="dhs-num" style="color: var(--ink-1);">62</div>
+                  <div class="dhs-lbl">days tracked</div>
+                </div>
+                <div class="dh-stat">
+                  <div class="dhs-num" style="color: var(--ink-1);">1,847</div>
+                  <div class="dhs-lbl">total pages</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <div class="ds-head">
+                <span class="ds-title">Atomic Habits framework</span>
+                <span class="ds-action">edit</span>
+              </div>
+              <div class="framework-grid">
+                <div class="fw-item cue">
+                  <div class="fw-label">Cue<span class="fw-rule">— make it obvious</span></div>
+                  <div class="fw-value">Coffee brewing sound at 6am. Kitchen light on.</div>
+                </div>
+                <div class="fw-item craving">
+                  <div class="fw-label">Craving<span class="fw-rule">— make it attractive</span></div>
+                  <div class="fw-value">The quiet mental space before the world wakes up.</div>
+                </div>
+                <div class="fw-item response">
+                  <div class="fw-label">Response<span class="fw-rule">— make it easy</span></div>
+                  <div class="fw-value">30 pages before opening any app.</div>
+                </div>
+                <div class="fw-item reward">
+                  <div class="fw-label">Reward<span class="fw-rule">— make it satisfying</span></div>
+                  <div class="fw-value">Note one insight in Obsidian, sip second coffee.</div>
+                </div>
+              </div>
+              <div class="stack-env-grid">
+                <div class="stack-item">
+                  <div class="si-label">Habit stacking</div>
+                  <div class="si-value">Make coffee<span class="stack-arrow">→</span>read 30 pages</div>
+                </div>
+                <div class="stack-item">
+                  <div class="si-label">Environment</div>
+                  <div class="si-value">Book on the table. Phone in another room.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <div class="ds-head">
+                <span class="ds-title">Consistency · rolling 30d over last 90 days</span>
+                <span style="font-family: var(--mono); font-size: 10px; color: var(--teal); font-weight: 700;">▲ +13 pts</span>
+              </div>
+              <div class="consistency-chart">
+                <svg viewBox="0 0 400 60" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="ccgrad" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="var(--teal)" stop-opacity="0.35"/>
+                      <stop offset="100%" stop-color="var(--teal)" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M0,42 L20,40 L40,44 L60,38 L80,40 L100,36 L120,32 L140,34 L160,28 L180,24 L200,26 L220,20 L240,22 L260,16 L280,12 L300,14 L320,10 L340,8 L360,10 L380,6 L400,4 L400,60 L0,60 Z" fill="url(#ccgrad)"/>
+                  <polyline points="0,42 20,40 40,44 60,38 80,40 100,36 120,32 140,34 160,28 180,24 200,26 220,20 240,22 260,16 280,12 300,14 320,10 340,8 360,10 380,6 400,4" fill="none" stroke="var(--teal)" stroke-width="1.8" vector-effect="non-scaling-stroke"/>
+                  <circle cx="400" cy="4" r="3" fill="var(--teal)"/>
+                </svg>
+                <div class="cc-scale">
+                  <span>90d ago · 78%</span>
+                  <span>60d ago · 82%</span>
+                  <span>30d ago · 86%</span>
+                  <span>today · 91%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <div class="ds-head">
+                <span class="ds-title">Last 60 days</span>
+                <span style="font-family: var(--mono); font-size: 10px; color: var(--ink-3); font-weight: 700;">54 done · 3 partial · 3 skip</span>
+              </div>
+              <div class="chain-full">
+                <div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day partial"></div><div class="cf-day done"></div><div class="cf-day skip"></div><div class="cf-day done"></div>
+                <div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day skip"></div>
+                <div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day partial"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div>
+                <div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day skip"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div>
+                <div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day partial"></div><div class="cf-day done"></div><div class="cf-day done"></div>
+                <div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div>
+                <div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div>
+                <div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done"></div>
+                <div class="cf-day done"></div><div class="cf-day done"></div><div class="cf-day done today"></div>
+              </div>
+              <div class="chain-labels"><span>apr 27</span><span>may 27</span><span>today · jun 25</span></div>
+            </div>
+
+            <div class="detail-section">
+              <div class="ds-head">
+                <span class="ds-title">Recent logs</span>
+                <span class="ds-action">view all</span>
+              </div>
+              <div class="log-history">
+                <div class="log-row">
+                  <span class="lr-date">today <span class="lr-time">07:12</span></span>
+                  <span class="lr-value">30 pages</span>
+                  <span class="lr-note">Finished chapter 4 · noted 1 insight</span>
+                  <span class="lr-state done">done</span>
+                </div>
+                <div class="log-row">
+                  <span class="lr-date">yesterday <span class="lr-time">07:20</span></span>
+                  <span class="lr-value">25 pages</span>
+                  <span class="lr-note">Missed target by 5</span>
+                  <span class="lr-state partial">partial</span>
+                </div>
+                <div class="log-row">
+                  <span class="lr-date">sat <span class="lr-time">—</span></span>
+                  <span class="lr-value muted">—</span>
+                  <span class="lr-note">Travel day</span>
+                  <span class="lr-state skip">skip</span>
+                </div>
+                <div class="log-row">
+                  <span class="lr-date">fri <span class="lr-time">06:55</span></span>
+                  <span class="lr-value">32 pages</span>
+                  <span class="lr-note">Above target</span>
+                  <span class="lr-state done">done</span>
+                </div>
+                <div class="log-row">
+                  <span class="lr-date">thu <span class="lr-time">07:30</span></span>
+                  <span class="lr-value">40 pages</span>
+                  <span class="lr-note">Compelling chapter — read past target</span>
+                  <span class="lr-state done">done</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section" style="border-bottom: none;">
+              <div class="ds-head">
+                <span class="ds-title">Cross-domain links</span>
+              </div>
+              <div class="cd-links">
+                <div class="cd-link">
+                  <div class="cd-icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg></div>
+                  <div class="cd-info">
+                    <div class="cd-title">Focus sessions · tagged reading</div>
+                    <div class="cd-meta">12 sessions this month · avg 42 min · auto-linked</div>
+                  </div>
+                  <div class="cd-count">12</div>
+                </div>
+                <div class="cd-link">
+                  <div class="cd-icn" style="background: var(--blue-soft); color: var(--blue);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m9 12 2 2 4-4"/></svg></div>
+                  <div class="cd-info">
+                    <div class="cd-title">Tasks · #reading tag</div>
+                    <div class="cd-meta">Books in queue: 3 · currently reading Atomic Habits</div>
+                  </div>
+                  <div class="cd-count" style="color: var(--blue);">3</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="detail-actions">
+            <button class="primary">Log · today</button>
+            <button>Edit framework</button>
+            <button>View history</button>
+            <button class="danger">Archive</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="kbd-hints">
+      <span class="khint"><span class="kbd">N</span><span class="klbl">new habit</span></span>
+      <span class="khint"><span class="kbd">J</span><span class="kbd">K</span><span class="klbl">navigate</span></span>
+      <span class="khint"><span class="kbd">L</span><span class="klbl">log habit</span></span>
+      <span class="khint"><span class="kbd">D</span><span class="klbl">done</span></span>
+      <span class="khint"><span class="kbd">P</span><span class="klbl">partial</span></span>
+      <span class="khint"><span class="kbd">S</span><span class="klbl">skip</span></span>
+      <span class="khint"><span class="kbd">↵</span><span class="klbl">open</span></span>
+      <span class="khint"><span class="kbd">⌘</span><span class="kbd">E</span><span class="klbl">edit</span></span>
+      <span class="khint"><span class="kbd">?</span><span class="klbl">all shortcuts</span></span>
+    </div>
+  </main>
+</div>
+
+<div class="floating-timer">
+  <div class="ftindicator"></div>
+  <div>
+    <div class="ftmode">Pomodoro · cycle 3 of 4</div>
+    <div class="fttitle">Project B · drafting</div>
+  </div>
+  <div class="fttime" id="ftime">08:42</div>
+</div>
+
+<script>
+  document.getElementById('ttoggle').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#ttoggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.documentElement.dataset.theme = btn.dataset.theme;
+  });
+  document.querySelectorAll('.segmented, .view-tabs-inner').forEach(group => {
+    group.addEventListener('click', e => {
+      const btn = e.target.closest('button, .vtab');
+      if (!btn) return;
+      group.querySelectorAll('button, .vtab').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+  document.querySelectorAll('.habit-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('.hlog')) return;
+      document.querySelectorAll('.habit-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    });
+  });
+  let seconds = 8 * 60 + 42;
+  setInterval(() => {
+    seconds--;
+    if (seconds < 0) seconds = 25 * 60;
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    document.getElementById('ftime').textContent = `${m}:${s}`;
+  }, 1000);
+</script>
+</body>
+</html>

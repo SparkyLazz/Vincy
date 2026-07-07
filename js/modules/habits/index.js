@@ -799,6 +799,16 @@
     if (key === 'e' && (e.metaKey || e.ctrlKey) && selectedId) { e.preventDefault(); openEditHabitModal(findHabit(selectedId)); }
   }
 
+  function consumePendingSelection() {
+    var pending = Console.pendingSelection;
+    if (!pending || pending.route !== 'habits' || pending.kind !== 'habit') return;
+    Console.pendingSelection = null;
+    var habit = findHabit(pending.id);
+    if (!habit) return;
+    selectedId = habit.id;
+    currentView = habit.status === 'archived' ? 'archive' : 'all';
+  }
+
   // ---------------------------------------------------------------- lifecycle
 
   function refreshAndRender() {
@@ -811,6 +821,7 @@
       cache.projects = results[4];
       cache.tasks = results[2];
       cache.focusSessions = results[3];
+      consumePendingSelection();
       render();
     });
   }
